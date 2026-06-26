@@ -1,0 +1,21 @@
+# Lab 3.2 - ClusterIP service. Here it's the backend for the NGINX Ingress
+# Controller (not CIS). The cis.f5.com/as3-* labels are inert in this flow.
+apiVersion: v1
+kind: Service
+metadata:
+  name: f5-hello-world-web
+  namespace: default
+  labels:
+    app: f5-hello-world-web
+    cis.f5.com/as3-tenant: AS3
+    cis.f5.com/as3-app: A1
+    cis.f5.com/as3-pool: web_pool
+spec:
+  type: ClusterIP
+  selector:
+    app: f5-hello-world-web
+  ports:
+    - name: f5-hello-world-web
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

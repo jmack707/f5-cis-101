@@ -1,0 +1,35 @@
+f5-cis-101
+Copyright 2026 Jermaine Mack (jmack707)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+================================================================================
+Third-party content vendored in this repository
+================================================================================
+
+1. NGINX Ingress Controller manifests (Module 3, lab1-deploy-nginx-ic/)
+   Files: 00-crds.yaml, 01-ns-and-sa.yaml, 02-rbac.yaml,
+          03-default-server-secret.yaml, 04-nginx-config.yaml,
+          05-ingress-class.yaml, 06-nginx-ingress-deployment.yaml,
+          07-service-nodeport.yaml
+   Source : github.com/nginxinc/kubernetes-ingress (tag v3.7.2)
+   License: Apache License 2.0
+   These are upstream installation manifests, included unmodified (except file
+   renaming for apply order) so the lab is self-contained.
+
+2. NGINX IngressLink "cafe" example (Module 4, lab2-cafe-app/)
+   Files: 01-cafe.yaml, 02-cafe-secret.yaml, 03-cafe-ingress.yaml
+   Source : github.com/F5Networks/k8s-bigip-ctlr
+            (docs/config_examples/customResource/IngressLink/ingress-example)
+   License: Apache License 2.0
+   Minor cosmetic YAML cleanup only.
+
+3. Container images referenced (pulled at runtime, not vendored)
+   - f5networks/k8s-bigip-ctlr  (F5 Container Ingress Services)
+   - nginx/nginx-ingress:3.7.2  (NGINX Inc.)
+   - nginxdemos/nginx-hello     (NGINX demo app)
+   - f5devcentral/f5-hello-world (F5 demo app)
+   These remain under their respective owners' licenses and trademarks.
+
+"F5", "BIG-IP", "NGINX", and related marks are trademarks of F5, Inc. This is an
+independent training project and is not affiliated with or endorsed by F5, Inc.

@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# ============================================================================
+# lib/labkit.sh — sourced by every script.
+#  - loads lab-vars.env
+#  - kapply/kdelete: idempotent, envsubst-rendered kubectl
+#  - verification helpers (kubernetes side + BIG-IP iControl REST + data path)
+# Source it: source "$(...)/lib/labkit.sh"   (scripts use the locator below)
+# ============================================================================
+
+# Resolve repo root from this file's location (lib/ is directly under root).
+_LABKIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAB_ROOT="$(dirname "$_LABKIT_DIR")"
+
+# Load variables
+if [ -f "$LAB_ROOT/lab-vars.env" ]; then
+  set -a; . "$LAB_ROOT/lab-vars.env"; set +a
+else
+  echo "FATAL: lab-vars.env not found at $LAB_ROOT" >&2
+  echo "       Create it from the template:  cp lab-vars.env.example lab-vars.env" >&2
+  echo "       then edit it for your network (BIG-IP IP/creds, VIPs)." >&2
+  exit 1
+fi
+
+# Only these vars are substituted into manifests (allowlist keeps $(POD_NAME)
+# and other shell-looking tokens in third-party YAML untouched).
+LABKIT_SUBST='${BIGIP_MGMT} ${BIGIP_PARTITION} ${CIS_IMAGE} ${CIS_NAMESPACE} ${NODEPORT_VIP} ${CLUSTER_VIP} ${NGINX_FRONT_VIP} ${INGRESSLINK_VIP} ${AS3_SCHEMA_VERSION}'
+
+# ---- colored status + counters -------------------------------------------
+_GRN=$'\033[32m'; _RED=$'\033[31m'; _YEL=$'\033[33m'; _RST=$'\033[0m'
+PASS_N=0; FAIL_N=0; WARN_N=0
+pass() { PASS_N=$((PASS_N+1)); echo "  ${_GRN}PASS${_RST}  $*"; }
+fail() { FAIL_N=$((FAIL_N+1)); echo "  ${_RED}FAIL${_RST}  $*"; }
+warn() { WARN_N=$((WARN_N+1)); echo "  ${_YEL}WARN${_RST}  $*"; }
+info() { echo "  ${_YEL}··${_RST}    $*"; }
+vsummary() {
+  echo "----------------------------------------"
+  echo "  ${PASS_N} passed, ${WARN_N} warning(s), ${FAIL_N} failed"
+  [ "$FAIL_N" -eq 0 ] || return 1
+}
+
+need() { command -v "$1" >/dev/null 2>&1 || { echo "missing tool: $1 ($(pkg_hint "$1"))" >&2; exit 1; }; }
+
+# Distro-aware install hint. Maps a binary to the right package + manager for the
+# runner's OS (Ubuntu/Debian, RHEL/Rocky/Alma, Fedora, SUSE).
+pkg_hint() {  # binary
+  local bin="$1" mgr pkg
+  if   command -v apt-get >/dev/null 2>&1; then mgr="sudo apt-get install -y"
+  elif command -v dnf     >/dev/null 2>&1; then mgr="sudo dnf install -y"
+  elif command -v yum     >/dev/null 2>&1; then mgr="sudo yum install -y"
+  elif command -v zypper  >/dev/null 2>&1; then mgr="sudo zypper install -y"
+  else mgr="install"; fi
+  case "$bin" in
+    envsubst)
+      # binary is shipped by gettext-base on Debian/Ubuntu, gettext elsewhere
+      if command -v apt-get >/dev/null 2>&1; then pkg="gettext-base"; else pkg="gettext"; fi ;;
+    python3) pkg="python3" ;;
+    *)       pkg="$bin" ;;
+  esac
+  echo "$mgr $pkg"
+}
+
+# ---- render + apply -------------------------------------------------------
+# kapply FILE  — envsubst (allowlisted) then kubectl apply (idempotent)
+kapply()  { need envsubst; envsubst "$LABKIT_SUBST" < "$1" | kubectl apply -f - ; }
+kdelete() { envsubst "$LABKIT_SUBST" < "$1" | kubectl delete --ignore-not-found=true -f - ; }
+
+# ---- kubernetes-side assertions ------------------------------------------
+assert_pod_running() {   # ns label
+  local ns="$1" label="$2" n
+  n=$(kubectl get pods -n "$ns" -l "$label" --field-selector=status.phase=Running -o name 2>/dev/null | wc -l)
+  [ "$n" -ge 1 ] && pass "pod running ($ns $label)" || fail "no Running pod ($ns $label)"
+}
+assert_svc_endpoints() { # ns svc
+  local ns="$1" svc="$2" eps
+  eps=$(kubectl get endpoints "$svc" -n "$ns" -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null | wc -w)
+  [ "$eps" -ge 1 ] && pass "service has $eps endpoint(s) ($ns/$svc)" || fail "service has no endpoints ($ns/$svc)"
+}
+assert_ingressclass() {  # name
+  kubectl get ingressclass "$1" >/dev/null 2>&1 && pass "IngressClass '$1' exists" || fail "IngressClass '$1' missing"
+}
+assert_cis_logs_clean() { # ns
+  local ns="${1:-$CIS_NAMESPACE}" pod errs
+  pod=$(kubectl get pods -n "$ns" -l app -o name 2>/dev/null | grep -i bigip | head -1)
+  [ -z "$pod" ] && pod=$(kubectl get pods -n "$ns" -o name | grep -i bigip | head -1)
+  if [ -z "$pod" ]; then fail "CIS pod not found in $ns"; return; fi
+  errs=$(kubectl logs "$pod" -n "$ns" --tail=200 2>/dev/null | grep -iE 'authentication failed|unauthorized|connection refused|x509|error creating' | wc -l)
+  [ "$errs" -eq 0 ] && pass "CIS logs show no auth/connect errors" || fail "CIS logs show $errs error line(s) — check 'kubectl logs $pod -n $ns'"
+}
+
+# ---- BIG-IP iControl REST -------------------------------------------------
+bigip_rest() { curl -sk --max-time 12 -u "${BIGIP_USER}:${BIGIP_PASS}" "https://${BIGIP_MGMT}/mgmt/${1}"; }
+bigip_get()  { bigip_rest "tm/${1}"; }
+
+assert_bigip_reachable() {
+  bigip_get "sys/version" | grep -q '"kind"' && pass "BIG-IP REST reachable ($BIGIP_MGMT)" \
+    || fail "BIG-IP REST not reachable at $BIGIP_MGMT (check creds/mgmt IP)"
+}
+assert_vs_with_vip() {   # vip partition
+  local vip="$1" part="$2"
+  bigip_get "ltm/virtual" | python3 -c "
+import sys,json
+d=json.load(sys.stdin); items=d.get('items',[])
+hit=[i for i in items if i.get('partition')=='$part' and '$vip:' in i.get('destination','')]
+sys.exit(0 if hit else 1)" 2>/dev/null \
+    && pass "virtual server on $vip found in /$part" \
+    || fail "no virtual server on $vip in partition /$part"
+}
+assert_pool_members_up() {  # partition
+  local part="$1" total=0 fp enc up names
+  names=$(bigip_get "ltm/pool" | python3 -c "
+import sys,json
+for i in json.load(sys.stdin).get('items',[]):
+    if i.get('partition')=='$part': print(i['fullPath'])" 2>/dev/null)
+  if [ -z "$names" ]; then fail "no pools in /$part"; return; fi
+  while IFS= read -r fp; do
+    [ -z "$fp" ] && continue
+    enc=$(printf '%s' "$fp" | sed 's#/#~#g')
+    up=$(bigip_get "ltm/pool/${enc}/members" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+print(sum(1 for m in d.get('items',[]) if m.get('state')!='down'))" 2>/dev/null || echo 0)
+    total=$((total+up))
+  done <<< "$names"
+  [ "$total" -gt 0 ] && pass "$total pool member(s) active in /$part" || fail "no active pool members in /$part"
+}
+assert_static_routes() {  # expect CIS-written routes named k8s-*
+  local n
+  n=$(bigip_get "net/route" | python3 -c "
+import sys,json
+print(sum(1 for i in json.load(sys.stdin).get('items',[]) if i.get('name','').startswith('k8s-')))" 2>/dev/null || echo 0)
+  [ "$n" -ge 1 ] && pass "$n CIS static route(s) on BIG-IP" || fail "no k8s-* static routes on BIG-IP"
+}
+
+# ---- data path ------------------------------------------------------------
+http_code() { curl -s -o /dev/null -w '%{http_code}' --max-time 8 "$@"; }
+assert_code() {  # expected URL [extra curl args...]
+  local exp="$1" url="$2"; shift 2
+  local got; got=$(http_code "$url" "$@")
+  [ "$got" = "$exp" ] && pass "HTTP $got from $url" || fail "expected $exp, got $got from $url"
+}
+assert_lb_rotation() {  # url min_distinct [extra curl args...]
+  local url="$1" min="${2:-2}"; shift 2 || true
+  local seen
+  seen=$(for _ in $(seq 1 12); do curl -s --max-time 5 "$url" "$@" 2>/dev/null; done \
+         | grep -oiE 'Server name:[[:space:]]*[^<[:space:]]+' | sort -u | wc -l)
+  [ "$seen" -ge "$min" ] && pass "load-balanced across $seen backends" \
+    || fail "saw $seen distinct backend(s), expected >= $min"
+}

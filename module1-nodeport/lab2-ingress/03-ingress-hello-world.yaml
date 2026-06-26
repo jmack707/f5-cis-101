@@ -1,0 +1,43 @@
+# Ingress (lab 1.2) - kept as legacy Ingress, NOT converted to VirtualServer CRD.
+# TEMPLATED — render via ../../lab.sh apply <dir> (or: set -a; source lab-vars.env; set +a; envsubst < FILE | kubectl apply -f -)
+# virtual-server.f5.com/* annotations are still supported on current CIS.
+# apiVersion networking.k8s.io/v1 is current.
+#
+# Note: an f5 IngressClass is optional here. With manage-ingress-class-only=true
+# (default) CIS still processes an Ingress that has no ingress.class annotation.
+# To make it explicit, create an IngressClass named "f5" (controller:
+# f5.com/cntr-ingress-svcs) and add `ingressClassName: f5` under spec.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: f5-hello-world-web
+  namespace: default
+  annotations:
+    virtual-server.f5.com/partition: "${BIGIP_PARTITION}"
+    # VIP on the BIG-IP external VLAN. Lab YAML uses 10.1.10.101; the lab
+    # narrative/screenshots reference 10.1.1.4 - set this to a free VIP that
+    # matches your UDF topology.
+    virtual-server.f5.com/ip: "${NODEPORT_VIP}"
+    virtual-server.f5.com/http-port: "80"
+    virtual-server.f5.com/ssl-redirect: "false"
+    virtual-server.f5.com/balance: "round-robin"
+    virtual-server.f5.com/health: |
+      [
+        {
+          "path":     "f5.hello.world/",
+          "send":     "HTTP GET /",
+          "interval": 5,
+          "timeout":  10
+        }
+      ]
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: f5-hello-world-web
+                port:
+                  number: 8080

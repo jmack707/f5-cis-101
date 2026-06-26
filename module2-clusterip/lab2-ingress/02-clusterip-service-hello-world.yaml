@@ -1,0 +1,21 @@
+# Lab 2.2 / 2.3 - ClusterIP service. In cluster mode pool members are the
+# pod overlay IPs (not NodePorts). AS3 labels drive ConfigMap discovery (2.3).
+apiVersion: v1
+kind: Service
+metadata:
+  name: f5-hello-world-web
+  namespace: default
+  labels:
+    app: f5-hello-world-web
+    cis.f5.com/as3-tenant: AS3
+    cis.f5.com/as3-app: A1
+    cis.f5.com/as3-pool: web_pool
+spec:
+  type: ClusterIP
+  selector:
+    app: f5-hello-world-web
+  ports:
+    - name: f5-hello-world-web
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

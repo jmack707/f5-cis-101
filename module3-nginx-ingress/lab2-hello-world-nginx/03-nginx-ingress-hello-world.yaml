@@ -1,0 +1,22 @@
+# Lab 3.2 - Ingress consumed by the NGINX Ingress Controller (NOT CIS).
+# Modernized: the deprecated `kubernetes.io/ingress.class: nginx` annotation
+# is replaced with spec.ingressClassName. Modern NGINX IC installs create an
+# `nginx` IngressClass; confirm with `kubectl get ingressclass`.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: f5-hello-world-ingress
+  namespace: default
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: mysite.f5demo.com      # must resolve / be in the client's hosts file
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: f5-hello-world-web
+                port:
+                  number: 8080

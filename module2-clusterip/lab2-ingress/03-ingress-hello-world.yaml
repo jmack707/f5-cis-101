@@ -1,0 +1,34 @@
+# Lab 2.2 - Ingress path (ClusterIP). Kept as legacy Ingress, no CRD conversion.
+# TEMPLATED — render via ../../lab.sh apply <dir> (or: set -a; source lab-vars.env; set +a; envsubst < FILE | kubectl apply -f -)
+# VIP 10.1.10.101 matches the BIG-IP VXLAN tunnel local-address used in 2.1.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: f5-hello-world-web
+  namespace: default
+  annotations:
+    virtual-server.f5.com/partition: "${BIGIP_PARTITION}"
+    virtual-server.f5.com/ip: "${CLUSTER_VIP}"
+    virtual-server.f5.com/http-port: "80"
+    virtual-server.f5.com/ssl-redirect: "false"
+    virtual-server.f5.com/balance: "round-robin"
+    virtual-server.f5.com/health: |
+      [
+        {
+          "path":     "f5.hello.world/",
+          "send":     "HTTP GET /",
+          "interval": 5,
+          "timeout":  10
+        }
+      ]
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: f5-hello-world-web
+                port:
+                  number: 8080

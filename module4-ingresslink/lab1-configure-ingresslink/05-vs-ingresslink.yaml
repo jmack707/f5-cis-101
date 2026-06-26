@@ -1,0 +1,18 @@
+# Lab 4.1 - IngressLink custom resource. virtualServerAddress is the BIG-IP VIP
+# TEMPLATED — render via ../../lab.sh apply <dir> (or: set -a; source lab-vars.env; set +a; envsubst < FILE | kubectl apply -f -)
+# that load-balances the NGINX IC pods (lab uses 10.1.1.4). The selector must
+# match the labels on 02-nginx-service.yaml (app: nginx-ingress).
+apiVersion: "cis.f5.com/v1"
+kind: IngressLink
+metadata:
+  name: vs-ingresslink
+  namespace: nginx-ingress
+spec:
+  virtualServerAddress: "${INGRESSLINK_VIP}"
+  iRules:
+    - /Common/Proxy_Protocol_iRule
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  # Alternative to virtualServerAddress: manage the VIP via F5 IPAM Controller
+  # ipamLabel: "Dev"

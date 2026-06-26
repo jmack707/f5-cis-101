@@ -1,0 +1,50 @@
+# Lab 2.3 - ConfigMap/AS3 path (ClusterIP). VIP 10.1.10.101.
+# TEMPLATED — render via ../../lab.sh apply <dir> (or: set -a; source lab-vars.env; set +a; envsubst < FILE | kubectl apply -f -)
+# schemaVersion bumped off the 3.18.0 floor; set <= AS3 build on the BIG-IP.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: f5-as3-declaration
+  namespace: default
+  labels:
+    f5type: virtual-server
+    as3: "true"
+data:
+  template: |
+    {
+        "class": "AS3",
+        "declaration": {
+            "class": "ADC",
+            "schemaVersion": "${AS3_SCHEMA_VERSION}",
+            "id": "urn:uuid:33045210-3ab8-4636-9b2a-c98d22ab915d",
+            "label": "http",
+            "remark": "A1 example",
+            "AS3": {
+                "class": "Tenant",
+                "A1": {
+                    "class": "Application",
+                    "template": "http",
+                    "serviceMain": {
+                        "class": "Service_HTTP",
+                        "virtualAddresses": [
+                            "${CLUSTER_VIP}"
+                        ],
+                        "pool": "web_pool",
+                        "virtualPort": 80
+                    },
+                    "web_pool": {
+                        "class": "Pool",
+                        "monitors": [
+                            "http"
+                        ],
+                        "members": [
+                            {
+                                "servicePort": 80,
+                                "serverAddresses": []
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }

@@ -1,0 +1,26 @@
+# Lab 4.1 - Service exposing the NGINX IC pods on 80/443 for IngressLink.
+# Port 8081 (readinessport) is optional; current CIS uses it to monitor NGINX+
+# readiness from BIG-IP. Remove it if you don't expose 8081 on the IC.
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress-ingresslink
+  namespace: nginx-ingress
+  labels:
+    app: nginx-ingress
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+    - port: 443
+      targetPort: 443
+      protocol: TCP
+      name: https
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+      name: readinessport
+  selector:
+    app: nginx-ingress

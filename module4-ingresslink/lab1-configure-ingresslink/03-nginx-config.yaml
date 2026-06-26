@@ -1,0 +1,12 @@
+# Lab 4.1 - NGINX IC config: enable PROXY protocol so the real client IP flows
+# BIG-IP -> NGINX (proxy_protocol) -> app pod (X-Real-IP). Apply, don't create,
+# to patch the already-running IC config.
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nginx-config
+  namespace: nginx-ingress
+data:
+  proxy-protocol: "True"
+  real-ip-header: "proxy_protocol"
+  set-real-ip-from: "0.0.0.0/0"

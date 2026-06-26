@@ -1,0 +1,69 @@
+# Lab 2.1 - CIS controller, ClusterIP/cluster mode using STATIC ROUTES.
+# TEMPLATED — render via ../../lab.sh apply <dir> (or: set -a; source lab-vars.env; set +a; envsubst < FILE | kubectl apply -f -)
+# Hardened the same way as module 1 (non-root, dropped caps, probes,
+# credentials-directory). Cluster-mode specifics: pool-member-type=cluster.
+# Static routing replaces the flannel VXLAN tunnel: CIS writes pod-CIDR routes
+# (k8s-<node>-<nodeip>) directly onto BIG-IP - no tunnel, no flannel-name, no
+# BIG-IP flannel node. CNI here is flannel, so --orchestration-cni=flannel.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-bigip-ctlr        # lab name kept so cleanup matches `delete -f cluster-deployment.yaml`
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-bigip-ctlr
+  template:
+    metadata:
+      labels:
+        app: k8s-bigip-ctlr
+    spec:
+      serviceAccountName: k8s-bigip-ctlr
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+      volumes:
+        - name: bigip-creds
+          secret:
+            secretName: f5-bigip-ctlr-login
+      containers:
+        - name: k8s-bigip-ctlr
+          image: "${CIS_IMAGE}"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          livenessProbe:
+            httpGet: { path: /health, port: 8080, scheme: HTTP }
+            initialDelaySeconds: 15
+            periodSeconds: 120
+            timeoutSeconds: 15
+          readinessProbe:
+            httpGet: { path: /health, port: 8080, scheme: HTTP }
+            initialDelaySeconds: 30
+            periodSeconds: 120
+            timeoutSeconds: 15
+          volumeMounts:
+            - name: bigip-creds
+              mountPath: "/tmp/creds"
+              readOnly: true
+          command: ["/app/bin/k8s-bigip-ctlr"]
+          args:
+            - --credentials-directory=/tmp/creds
+            - --bigip-partition=${BIGIP_PARTITION}
+            - --pool-member-type=cluster
+            - --static-routing-mode=true       # write routes to BIG-IP, no VXLAN
+            - --orchestration-cni=flannel       # cluster CNI; CIS reads node podCIDR/IP
+            - --insecure=true                   # lab/non-prod only
+            - --log-level=INFO
+            - --custom-resource-mode=false      # ConfigMap/Ingress, not CRDs
+            - --log-as3-response=true
+            - --as3-validation=true             # lab 2.1 set this false; true is the safer default
+      dnsPolicy: ClusterFirst

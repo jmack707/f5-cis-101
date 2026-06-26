@@ -1,0 +1,14 @@
+# Local environment — never commit (contains BIG-IP password + your topology)
+lab-vars.env
+
+# Archives / build artifacts
+*.zip
+*.tar.gz
+.rendered/
+
+# Editor / OS cruft
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
