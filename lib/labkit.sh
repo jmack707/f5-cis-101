@@ -140,9 +140,18 @@ assert_code() {  # expected URL [extra curl args...]
 }
 assert_lb_rotation() {  # url min_distinct [extra curl args...]
   local url="$1" min="${2:-2}"; shift 2 || true
-  local seen
-  seen=$(for _ in $(seq 1 12); do curl -s --max-time 5 "$url" "$@" 2>/dev/null; done \
-         | grep -oiE 'Server name:[[:space:]]*[^<[:space:]]+' | sort -u | wc -l)
+  local flat n_f5 n_nginx seen
+  # Hit the VIP a dozen times and count distinct backends. Different demo apps
+  # advertise the serving pod differently, so flatten HTML (strip tags/newlines)
+  # and match whichever marker the app emits:
+  #   * f5devcentral/f5-hello-world prints the pod's own IP in its
+  #     "Destination IP/Port" row ($_SERVER["SERVER_ADDR"]).
+  #   * nginxdemos/nginx-hello prints "Server name: <pod>".
+  flat=$(for _ in $(seq 1 12); do curl -s --max-time 5 "$url" "$@" 2>/dev/null; done \
+         | tr '\n' ' ' | sed -E 's/<[^>]+>/ /g; s/[[:space:]]+/ /g')
+  n_f5=$(printf '%s' "$flat" | grep -oiE 'Destination IP/Port[[:space:]]+[0-9.]+' | sort -u | wc -l)
+  n_nginx=$(printf '%s' "$flat" | grep -oiE 'Server name:[[:space:]]*[^[:space:]]+' | sort -u | wc -l)
+  seen=$(( n_f5 > n_nginx ? n_f5 : n_nginx ))
   [ "$seen" -ge "$min" ] && pass "load-balanced across $seen backends" \
     || fail "saw $seen distinct backend(s), expected >= $min"
 }
