@@ -77,6 +77,11 @@ shell harness; manifests are templated so the same files run on any topology.
   holding the locator block, write `&&` literally — escaping it as `\&\&` produces
   a broken `cd ... \&\& pwd` that `bash -n` does NOT catch (`cd a b` is valid
   syntax). `validate.sh` step [2] guards this.
+- **AS3 ConfigMap pool members need `"shareNodes": true`** (a boolean): when CIS
+  injects discovered members into an AS3-ConfigMap pool, it sets `shareNodes` on the
+  member, and if the template doesn't declare it as a boolean the BIG-IP rejects the
+  whole declaration with `422 … /web_pool/members/0/shareNodes: should be boolean`
+  (no VS/pool created). Every AS3-ConfigMap member block must include it.
 - **AS3 `schemaVersion`** must be `<=` the AS3 build on the BIG-IP; the lab default
   3.50.0 is in `lab-vars.env`. Module 3's original lab used 3.10.0 (below the 3.18
   floor) — fixed.
