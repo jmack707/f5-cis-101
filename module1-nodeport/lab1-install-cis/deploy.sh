@@ -10,6 +10,8 @@ echo "== Lab 1.1 — Install CIS (NodePort mode) =="
 remove_other_cis k8s-bigip-ctlr-deployment
 step "prereqs: ServiceAccount, ClusterRoleBinding, BIG-IP login Secret"
 bash 01-setup.sh
+step "ensure BIG-IP partition ${BIGIP_PARTITION} (iControl REST — no SSH/password)"
+ensure_partition
 step "apply  02-nodeport-deployment.yaml (the CIS controller)"
 kapply 02-nodeport-deployment.yaml
 step "waiting for the CIS controller pod to be ready"

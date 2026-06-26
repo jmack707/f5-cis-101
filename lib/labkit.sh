@@ -98,6 +98,21 @@ remove_other_cis() {  # keep_deployment_name
     fi
   done
 }
+# Create the CIS BIG-IP partition via iControl REST — uses the same creds as
+# lab-vars.env, so no SSH and no interactive password prompt. Idempotent (409 =
+# already exists). Replaces the old `ssh ... tmsh create auth partition`.
+ensure_partition() {
+  local code
+  code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 12 \
+    -u "${BIGIP_USER}:${BIGIP_PASS}" -H 'Content-Type: application/json' \
+    -X POST "https://${BIGIP_MGMT}/mgmt/tm/auth/partition" \
+    -d "{\"name\":\"${BIGIP_PARTITION}\"}" 2>/dev/null || true)
+  case "$code" in
+    200|201) step "BIG-IP partition '${BIGIP_PARTITION}' created (iControl REST)" ;;
+    409)     step "BIG-IP partition '${BIGIP_PARTITION}' already exists" ;;
+    *)       warn "partition create on ${BIGIP_MGMT} returned HTTP ${code:-000} (continuing)" ;;
+  esac
+}
 
 # ---- kubernetes-side assertions ------------------------------------------
 assert_pod_running() {   # ns label

@@ -9,9 +9,10 @@ needs (partition, service account, RBAC, credentials secret).
 | `01-setup.sh` | ServiceAccount, ClusterRoleBinding, BIG-IP credentials secret (+ optional trusted-certs) |
 | `02-nodeport-deployment.yaml` | CIS controller, NodePort mode (hardened) |
 
-## BIG-IP prep (once)
-- Create the `kubernetes` partition: `ssh admin@10.1.1.5 tmsh create auth partition kubernetes`
-- Confirm AS3 3.18+ is installed (iApps ▸ Package Management LX).
+## BIG-IP prep
+- `deploy.sh` creates the `kubernetes` partition for you via iControl REST (uses the
+  credentials in `lab-vars.env` — no SSH, no password prompt).
+- Just confirm AS3 3.18+ is installed (iApps ▸ Package Management LX).
 
 ## Deploy
 ```bash

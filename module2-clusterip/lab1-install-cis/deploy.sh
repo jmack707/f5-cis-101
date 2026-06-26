@@ -8,7 +8,7 @@ cd "$HERE"
 
 echo "== Lab 2.1 — Install CIS (ClusterIP + static routes) =="
 remove_other_cis k8s-bigip-ctlr
-step "BIG-IP prep: partition + save config (ssh will prompt for the BIG-IP password)"
+step "BIG-IP prep: ensure partition (iControl REST — no SSH/password)"
 bash 01-bigip-setup.sh
 step "prereqs: ServiceAccount, ClusterRoleBinding, BIG-IP login Secret"
 bash 02-setup.sh
