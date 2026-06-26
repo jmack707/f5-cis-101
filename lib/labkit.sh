@@ -148,3 +148,32 @@ assert_lb_rotation() {  # url min_distinct [extra curl args...]
   [ "$seen" -ge "$min" ] && pass "load-balanced across $seen backends" \
     || fail "saw $seen distinct backend(s), expected >= $min"
 }
+
+# ---- settle: poll until app + BIG-IP config are programmed (pre-verify) ----
+# CIS programs the BIG-IP a few seconds after the Service/Ingress exist, and k8s
+# endpoints take a moment to populate. apply-all calls settle_ingress before
+# verify so a fresh run doesn't report false failures while things converge.
+_svc_has_endpoints() {  # ns svc  -> true once >=1 endpoint address exists
+  local ips
+  ips=$(kubectl -n "$1" get endpoints "$2" \
+        -o jsonpath='{range .subsets[*].addresses[*]}{.ip}{" "}{end}' 2>/dev/null)
+  [ -n "${ips// /}" ]
+}
+_vs_exists() {  # vip partition  -> true once CIS has programmed the VS
+  bigip_get "ltm/virtual" | python3 -c "
+import sys,json
+d=json.load(sys.stdin); items=d.get('items',[])
+sys.exit(0 if [i for i in items if i.get('partition')=='$2' and '$1:' in i.get('destination','')] else 1)" 2>/dev/null
+}
+# settle_ingress <ns> <svc> <vip> <partition> [timeout_secs]
+# Waits (bounded) for the service endpoints AND the CIS-programmed VS, then returns.
+# On timeout it returns nonzero but does NOT abort — verify still runs and reports.
+settle_ingress() {
+  local ns="$1" svc="$2" vip="$3" part="$4" timeout="${5:-90}" t0=$SECONDS
+  printf '  %s··%s    settling: %s/%s endpoints + VS %s in /%s ' "$_YEL" "$_RST" "$ns" "$svc" "$vip" "$part"
+  while :; do
+    if _svc_has_endpoints "$ns" "$svc" && _vs_exists "$vip" "$part"; then echo "ready"; return 0; fi
+    if [ $((SECONDS - t0)) -ge "$timeout" ]; then echo "timeout after ${timeout}s (verifying anyway)"; return 1; fi
+    printf '.'; sleep 3
+  done
+}

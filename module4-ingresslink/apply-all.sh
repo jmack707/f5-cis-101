@@ -16,5 +16,7 @@ kapply lab1-configure-ingresslink/03-nginx-config.yaml
 kapply lab1-configure-ingresslink/04-ingresslink-deployment.yaml
 kubectl -n "$CIS_NAMESPACE" rollout status deploy/k8s-bigip-ctlr --timeout=120s || true
 kapply lab1-configure-ingresslink/05-vs-ingresslink.yaml
-echo "== Verify =="; bash lab1-configure-ingresslink/verify.sh || true
+echo "== Verify =="
+settle_ingress nginx-ingress nginx-ingress-ingresslink "$INGRESSLINK_VIP" "$BIGIP_PARTITION" 120
+bash lab1-configure-ingresslink/verify.sh || true
 echo "Run lab2-cafe-app/ then 'bash lab2-cafe-app/verify.sh' for the end-to-end test."
