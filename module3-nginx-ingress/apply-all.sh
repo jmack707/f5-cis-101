@@ -13,4 +13,6 @@ kapply lab2-hello-world-nginx/02-clusterip-service-hello-world.yaml
 kapply lab2-hello-world-nginx/03-nginx-ingress-hello-world.yaml
 kapply lab2-hello-world-nginx/04-cis-service.yaml
 kapply lab2-hello-world-nginx/05-cis-configmap.yaml
-echo "== Verify =="; bash lab1-deploy-nginx-ic/verify.sh || true; bash lab2-hello-world-nginx/verify.sh || true
+echo "== Verify =="
+settle_ingress nginx-ingress nginx-ingress-hello-world "$NGINX_FRONT_VIP" AS3 120
+bash lab1-deploy-nginx-ic/verify.sh || true; bash lab2-hello-world-nginx/verify.sh || true

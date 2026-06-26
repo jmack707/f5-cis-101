@@ -76,7 +76,8 @@ shell harness; manifests are templated so the same files run on any topology.
 - **Module 4 needs NGINX *Plus*** IC (not the OSS IC from Module 3) and the CIS CRD
   bundle (fetched from GitHub unless mirrored).
 - **Air-gapped:** mirror `CIS_IMAGE`, `nginx/nginx-ingress:3.7.2`, and
-  `nginxdemos/nginx-hello`; localize the CIS CRD bundle.
+  `nginxdemos/hello` (the demo/cafe app across Modules 1–4); localize the CIS
+  CRD bundle.
 
 ## Layout
 ```

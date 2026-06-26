@@ -15,4 +15,6 @@ echo "== Lab 1.2: Ingress demo =="
 kapply lab2-ingress/01-deployment-hello-world.yaml
 kapply lab2-ingress/02-nodeport-service-hello-world.yaml
 kapply lab2-ingress/03-ingress-hello-world.yaml
-echo "== Verify =="; bash lab2-ingress/verify.sh || true
+echo "== Verify =="
+settle_ingress default f5-hello-world-web "$NODEPORT_VIP" "$BIGIP_PARTITION" 90
+bash lab2-ingress/verify.sh || true

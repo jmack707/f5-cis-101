@@ -77,7 +77,7 @@ cd module1-nodeport && bash apply-all.sh
 ## Air-gapped reproduction (your closed-network case)
 - **Mirror images** into your local registry: the CIS image in `lab-vars.env`
   (`f5networks/k8s-bigip-ctlr:…`), `nginx/nginx-ingress:3.7.2` (Module 3), and the
-  cafe demo image `nginxdemos/nginx-hello` (Module 4). Update the `image:` fields /
+  demo/cafe app image `nginxdemos/hello` (Modules 1–4). Update the `image:` fields /
   `lab-vars.env` to your registry.
 - **Localize the CIS CRD bundle** for Module 4 instead of the GitHub fetch.
 - This maps directly onto a Zarf/mirrored-registry workflow — the manifests are
