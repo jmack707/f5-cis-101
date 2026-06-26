@@ -215,14 +215,31 @@ import sys,json
 d=json.load(sys.stdin); items=d.get('items',[])
 sys.exit(0 if [i for i in items if i.get('partition')=='$2' and '$1:' in i.get('destination','')] else 1)" 2>/dev/null
 }
+_pool_members_active() {  # partition -> true once >=1 pool member is not 'down'
+  local part="$1" names fp enc up total=0
+  names=$(bigip_get "ltm/pool" | python3 -c "
+import sys,json
+for i in json.load(sys.stdin).get('items',[]):
+    if i.get('partition')=='$part': print(i['fullPath'])" 2>/dev/null)
+  [ -z "$names" ] && return 1
+  while IFS= read -r fp; do
+    [ -z "$fp" ] && continue
+    enc=$(printf '%s' "$fp" | sed 's#/#~#g')
+    up=$(bigip_get "ltm/pool/${enc}/members" | python3 -c "
+import sys,json
+print(sum(1 for m in json.load(sys.stdin).get('items',[]) if m.get('state')!='down'))" 2>/dev/null || echo 0)
+    total=$((total+up))
+  done <<< "$names"
+  [ "$total" -ge 1 ]
+}
 # settle_ingress <ns> <svc> <vip> <partition> [timeout_secs]
 # Waits (bounded) for the service endpoints AND the CIS-programmed VS, then returns.
 # On timeout it returns nonzero but does NOT abort — verify still runs and reports.
 settle_ingress() {
   local ns="$1" svc="$2" vip="$3" part="$4" timeout="${5:-90}" t0=$SECONDS
-  printf '  %s··%s    settling: %s/%s endpoints + VS %s in /%s ' "$_YEL" "$_RST" "$ns" "$svc" "$vip" "$part"
+  printf '  %s··%s    settling: %s/%s endpoints + VS %s + pool members in /%s ' "$_YEL" "$_RST" "$ns" "$svc" "$vip" "$part"
   while :; do
-    if _svc_has_endpoints "$ns" "$svc" && _vs_exists "$vip" "$part"; then echo "ready"; return 0; fi
+    if _svc_has_endpoints "$ns" "$svc" && _vs_exists "$vip" "$part" && _pool_members_active "$part"; then echo "ready"; return 0; fi
     if [ $((SECONDS - t0)) -ge "$timeout" ]; then echo "timeout after ${timeout}s (verifying anyway)"; return 1; fi
     printf '.'; sleep 3
   done
