@@ -14,15 +14,8 @@ publishes a BIG-IP VS whose pool members are the NGINX IC pods.
 
 ## Deploy
 ```bash
-# App + NGINX front door
-kubectl create -f 01-deployment-hello-world.yaml
-kubectl create -f 02-clusterip-service-hello-world.yaml
-kubectl create -f 03-nginx-ingress-hello-world.yaml
-
-# CIS publishes the BIG-IP VS for the NGINX pods
-kubectl create -f 04-cis-service.yaml
-kubectl create -f 05-cis-configmap.yaml
-kubectl describe svc nginx-ingress-hello-world -n nginx-ingress
+bash deploy.sh     # renders + applies the manifests above, in order, then waits until ready
+bash verify.sh     # PASS/FAIL checks
 ```
 
 ## Verify
@@ -40,16 +33,10 @@ curl -H 'Host: mysite.f5demo.com' http://10.1.10.101/
 
 ## Cleanup
 ```bash
-kubectl delete -f 05-cis-configmap.yaml
-kubectl delete -f 04-cis-service.yaml
-kubectl delete -f 03-nginx-ingress-hello-world.yaml
-kubectl delete -f 02-clusterip-service-hello-world.yaml
-kubectl delete -f 01-deployment-hello-world.yaml
-# Remove CIS only if you're not going to module 4:
-# kubectl delete -f ../../module2-clusterip/lab1-install-cis/03-cluster-deployment.yaml
+bash cleanup.sh    # removes the demo; leaves the NGINX IC and CIS running
 ```
 
 ---
 **Verify this lab:** `./lab.sh verify <this-lab-dir>` (from repo root) or
 `bash verify.sh` here. Manifests are templated from `lab-vars.env` — apply with
-`./lab.sh apply <dir>` or the module `apply-all.sh`, not raw `kubectl create`.
+`bash deploy.sh` here (it renders the templates), not raw `kubectl create`. Tear down with `bash cleanup.sh`.

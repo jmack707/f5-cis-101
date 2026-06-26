@@ -12,14 +12,13 @@ is the partition; CIS programs the pod routes itself once running.
 
 ## Deploy
 ```bash
-bash 01-bigip-setup.sh
-bash 02-setup.sh                       # skip if module 1 already created these
-# If module 1's CIS is still up, remove it first:
-#   kubectl delete -f ../../module1-nodeport/lab1-install-cis/02-nodeport-deployment.yaml
-kubectl create -f 03-cluster-deployment.yaml
-kubectl get pods -n kube-system | grep k8s-bigip-ctlr
-# Confirm routes were written on BIG-IP:
-ssh admin@10.1.1.5 'tmsh list net route | grep k8s-'
+bash deploy.sh     # BIG-IP prep + prereqs + CIS controller (removes any other module's CIS first)
+bash verify.sh     # PASS/FAIL checks, incl. CIS-written static routes
+```
+`deploy.sh` runs `01-bigip-setup.sh` (partition) and `02-setup.sh` (SA/RBAC/secret),
+then renders and applies `03-cluster-deployment.yaml`. To confirm the routes yourself:
+```bash
+ssh admin@<bigip> 'tmsh list net route | grep k8s-'
 ```
 
 ## Key args (vs the lab)
@@ -35,10 +34,9 @@ CIS reads podCIDR/nodeIP from the node object — for flannel that's
 (`kube-controller-manager --allocate-node-cidrs=true`).
 
 ## Cleanup
-Leave running for labs 2.2 / 2.3 (and module 3). To remove:
-`kubectl delete -f 03-cluster-deployment.yaml`
+Leave running for labs 2.2 / 2.3 (and module 3). To remove the controller: `bash cleanup.sh`
 
 ---
 **Verify this lab:** `./lab.sh verify <this-lab-dir>` (from repo root) or
 `bash verify.sh` here. Manifests are templated from `lab-vars.env` — apply with
-`./lab.sh apply <dir>` or the module `apply-all.sh`, not raw `kubectl create`.
+`bash deploy.sh` here (it renders the templates), not raw `kubectl create`. Tear down with `bash cleanup.sh`.

@@ -19,8 +19,8 @@ manifests (Apache-2.0), bundled here so the lab runs without fetching anything.
 
 ## Install
 ```bash
-bash install-nginx-ic.sh
-# or manually: kubectl apply -f 00-crds.yaml ; kubectl apply -f 01-... (in order)
+bash deploy.sh     # applies the upstream NGINX IC manifests (via install-nginx-ic.sh), waits for rollout
+bash verify.sh     # expect the IC pod Running + IngressClass 'nginx'
 ```
 
 ## Verify
@@ -43,14 +43,10 @@ kubectl get ingressclass            # expect 'nginx'
 
 ## Uninstall
 ```bash
-kubectl delete -f 07-service-nodeport.yaml -f 06-nginx-ingress-deployment.yaml \
-  -f 05-ingress-class.yaml -f 04-nginx-config.yaml -f 03-default-server-secret.yaml \
-  -f 02-rbac.yaml -f 01-ns-and-sa.yaml --ignore-not-found
-# CRDs last (removes any NGINX VirtualServer CRs too):
-kubectl delete -f 00-crds.yaml --ignore-not-found
+bash cleanup.sh    # NOTE: module 4 reuses this NGINX IC — only remove it when you're done with module 4
 ```
 
 ---
 **Verify this lab:** `./lab.sh verify <this-lab-dir>` (from repo root) or
 `bash verify.sh` here. Manifests are templated from `lab-vars.env` — apply with
-`./lab.sh apply <dir>` or the module `apply-all.sh`, not raw `kubectl create`.
+`bash deploy.sh` here (it renders the templates), not raw `kubectl create`. Tear down with `bash cleanup.sh`.

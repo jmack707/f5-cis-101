@@ -43,8 +43,8 @@ first; it checks everything below and tells you exactly what's missing.
 - **Requires NGINX Plus IC.** The OSS controller installed in Module 3 (lab 3.1)
   does **not** support IngressLink. Without a Plus subscription you can complete
   Modules 1–3 and read through 4.
-- `apply-all.sh` fetches the CIS CRD bundle from GitHub at apply time — needs
-  internet, or drop a pinned `customresourcedefinitions.yml` locally and point the
+- Module 4 lab 4.1's `deploy.sh` fetches the CIS CRD bundle from GitHub at apply
+  time — needs internet, or drop a pinned `customresourcedefinitions.yml` locally and point the
   script at it.
 
 ### VIPs
@@ -71,7 +71,7 @@ AS3_SCHEMA_VERSION=<= your installed AS3 build>
 Everything else renders from these. Then:
 ```bash
 ./preflight.sh                       # gate: confirms your environment is ready
-cd module1-nodeport && bash apply-all.sh
+cd module1-nodeport/lab1-install-cis && bash deploy.sh && bash verify.sh
 ```
 
 ## Air-gapped reproduction (your closed-network case)

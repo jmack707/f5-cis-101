@@ -12,10 +12,11 @@ NodePort mode they stayed fixed at the node count).
 | `03-configmap-hello-world.yaml` | AS3 declaration (VIP 10.1.10.101) |
 
 ## Deploy
+> Publishes the same VIP as lab 2.2, so run `bash ../lab2-ingress/cleanup.sh`
+> first if lab 2.2 is still up.
 ```bash
-kubectl create -f 01-deployment-hello-world.yaml
-kubectl create -f 02-clusterip-service-hello-world.yaml
-kubectl create -f 03-configmap-hello-world.yaml
+bash deploy.sh     # renders + applies the manifests above, in order, then waits until ready
+bash verify.sh     # PASS/FAIL checks
 ```
 
 ## Verify on BIG-IP
@@ -30,14 +31,12 @@ kubectl scale --replicas=10 deployment/f5-hello-world-web -n default
 
 ## Cleanup
 ```bash
-kubectl delete -f 03-configmap-hello-world.yaml
-kubectl delete -f 02-clusterip-service-hello-world.yaml
-kubectl delete -f 01-deployment-hello-world.yaml
+bash cleanup.sh
 ```
-Continuing to module 3? Leave the cluster-mode CIS running. Otherwise:
-`kubectl delete -f ../lab1-install-cis/03-cluster-deployment.yaml`
+Continuing to module 3? Leave the cluster-mode CIS running. Otherwise remove it:
+`bash ../lab1-install-cis/cleanup.sh`
 
 ---
 **Verify this lab:** `./lab.sh verify <this-lab-dir>` (from repo root) or
 `bash verify.sh` here. Manifests are templated from `lab-vars.env` — apply with
-`./lab.sh apply <dir>` or the module `apply-all.sh`, not raw `kubectl create`.
+`bash deploy.sh` here (it renders the templates), not raw `kubectl create`. Tear down with `bash cleanup.sh`.

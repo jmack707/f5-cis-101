@@ -13,10 +13,8 @@ you can watch load balancing) to BIG-IP using a Kubernetes **Ingress** with
 
 ## Deploy
 ```bash
-kubectl create -f 01-deployment-hello-world.yaml
-kubectl create -f 02-nodeport-service-hello-world.yaml
-kubectl create -f 03-ingress-hello-world.yaml
-kubectl get pods -o wide
+bash deploy.sh     # renders + applies the manifests above, in order, then waits until ready
+bash verify.sh     # PASS/FAIL checks (Kubernetes + BIG-IP + data path)
 ```
 
 ## Verify on BIG-IP
@@ -33,12 +31,10 @@ on the lab network and refresh to watch load balancing.
 
 ## Cleanup (do not skip)
 ```bash
-kubectl delete -f 03-ingress-hello-world.yaml
-kubectl delete -f 02-nodeport-service-hello-world.yaml
-kubectl delete -f 01-deployment-hello-world.yaml
+bash cleanup.sh
 ```
 
 ---
 **Verify this lab:** `./lab.sh verify <this-lab-dir>` (from repo root) or
 `bash verify.sh` here. Manifests are templated from `lab-vars.env` — apply with
-`./lab.sh apply <dir>` or the module `apply-all.sh`, not raw `kubectl create`.
+`bash deploy.sh` here (it renders the templates), not raw `kubectl create`. Tear down with `bash cleanup.sh`.

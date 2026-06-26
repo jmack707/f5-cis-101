@@ -15,11 +15,25 @@ get started.
 - BIG-IP licensed, AS3 3.18+ installed.
 - `kubernetes` partition (lab 1.1 creates it; idempotent).
 
-## Order
-Run lab 1.1 first (it brings up CIS). Then lab 1.2 and lab 1.3 are independent —
-each deploys the app, verifies on BIG-IP, then cleans up. Lab 1.3 removes the CIS
-controller at the end if you're done with NodePort mode; leave it running only if
-you have a reason to.
+## Run the labs (in order)
+Each lab folder is self-contained: `bash deploy.sh` → `bash verify.sh` → `bash cleanup.sh`.
+`deploy.sh` renders the templated manifests and applies them — never `kubectl create -f`
+the YAML directly (it would send literal `${VARS}`).
+
+```bash
+# Lab 1.1 — install the CIS controller (NodePort)
+cd lab1-install-cis    && bash deploy.sh && bash verify.sh && cd ..
+
+# Lab 1.2 — publish the app via a Kubernetes Ingress
+cd lab2-ingress        && bash deploy.sh && bash verify.sh
+bash cleanup.sh        && cd ..    # clean up before 1.3 — it reuses the same VIP
+
+# Lab 1.3 — publish the same app via ConfigMap/AS3
+cd lab3-configmap-as3  && bash deploy.sh && bash verify.sh && bash cleanup.sh && cd ..
+
+# Done with NodePort mode? Remove the controller:
+cd lab1-install-cis    && bash cleanup.sh && cd ..
+```
 
 > Source: https://clouddocs.f5.com/training/community/containers/html/class1/module1/module1.html
 

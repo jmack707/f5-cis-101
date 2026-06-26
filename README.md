@@ -68,26 +68,35 @@ controller configured for that module's mode (NodePort vs cluster/static vs CRD)
 Before starting a new module, delete the previous module's CIS deployment. Each
 lab README's cleanup section calls this out.
 
-## Quick start (per-module scripts)
+## Quick start (run labs lab-by-lab)
 
-Every module has `apply-all.sh` / `cleanup-all.sh` that bring the module up to a
-"ready + one demo running" state and tear it all down again. They handle the
-"one CIS at a time" swap for you.
+There is **no module-level "run everything" script.** Each lab folder is
+self-contained and you run it in order:
 
 ```bash
-cd module1-nodeport   && bash apply-all.sh     # CIS (NodePort) + Ingress demo
-# ...inspect on BIG-IP, then:
-bash cleanup-all.sh
-
-cd ../module2-clusterip && bash apply-all.sh   # CIS (ClusterIP/static) + Ingress demo
-cd ../module3-nginx-ingress && bash apply-all.sh  # NGINX IC + CIS-published demo
-cd ../module4-ingresslink   && bash apply-all.sh  # IngressLink (create the iRule first)
+bash deploy.sh     # renders the templated manifests and applies them, then waits until ready
+bash verify.sh     # PASS/FAIL checks (Kubernetes + BIG-IP + data path)
+bash cleanup.sh    # tear the lab back down
 ```
+
+So a full module is just its labs in sequence — for example Module 1:
+
+```bash
+cd module1-nodeport
+cd lab1-install-cis   && bash deploy.sh && bash verify.sh && cd ..   # CIS (NodePort) — leaves a Running pod
+cd lab2-ingress       && bash deploy.sh && bash verify.sh && bash cleanup.sh && cd ..
+cd lab3-configmap-as3 && bash deploy.sh && bash verify.sh && bash cleanup.sh && cd ..
+cd lab1-install-cis   && bash cleanup.sh && cd ..                    # remove CIS when done
+```
+
+Each module's `README.md` has the exact ordered command list (and notes which
+controller to leave running for the next module — only one CIS runs at a time;
+each `lab1` `deploy.sh` removes any other module's CIS first).
 
 The set is **self-contained** — NGINX IC (v3.7.2, lab 3.1) and the cafe app
 (lab 4.2) manifests are bundled, so nothing needs to be fetched at lab time except
-container images (and, for module 4's `apply-all.sh`, the CIS CRD bundle — swap in
-a pinned copy for fully offline use).
+container images (and, for module 4 lab 4.1, the CIS CRD bundle — swap in a pinned
+copy for fully offline use).
 
 ## Repository setup & Claude Code
 
@@ -130,14 +139,18 @@ as-is.
 
 Three entry points:
 
-- **Per-module** `apply-all.sh` / `cleanup-all.sh` — bring a module up to
-  "ready + one demo + verify" and tear it down. Idempotent (safe to re-run).
-- **Per-lab driver** — from the repo root:
+- **Per-lab scripts** (what students use) — from inside a lab folder:
   ```bash
-  ./lab.sh apply  module1-nodeport/lab2-ingress     # render + kubectl apply, in order
-  ./lab.sh verify module1-nodeport/lab2-ingress     # run that lab's checks
-  ./lab.sh delete module1-nodeport/lab2-ingress     # reverse-order teardown
+  bash deploy.sh     # render + apply the lab's manifests in order, wait until ready
+  bash verify.sh     # run that lab's checks
+  bash cleanup.sh    # reverse-order teardown
+  ```
+- **`lab.sh` driver** (the render engine `deploy.sh` is built on; handy for debugging)
+  — from the repo root:
+  ```bash
   ./lab.sh render module1-nodeport/lab2-ingress     # preview rendered YAML, no apply
+  ./lab.sh apply  module1-nodeport/lab2-ingress     # render + kubectl apply, in order
+  ./lab.sh delete module1-nodeport/lab2-ingress     # reverse-order teardown
   ```
 - **Manual** (any single file):
   ```bash
@@ -153,7 +166,7 @@ Every lab has a **`verify.sh`** that checks all three layers and prints
 endpoints, IngressClass present), the **BIG-IP side over iControl REST** (the
 expected virtual server exists in the right partition, pool members are active,
 CIS static routes are present), and the **data path** (the VIP returns HTTP 200 and
-load-balances across pods). `apply-all.sh` runs the relevant `verify.sh` for you.
+load-balances across pods). Run it yourself after each `deploy.sh`.
 
 Requirements on the runner (kube-master1): `kubectl`, `curl`, `python3`, and
 `envsubst` (Ubuntu/Debian: `sudo apt-get install -y gettext-base` · RHEL/Rocky/Alma:

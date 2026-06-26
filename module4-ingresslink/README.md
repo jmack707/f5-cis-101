@@ -10,12 +10,19 @@ the real client IP through to the app. CIS runs in **CRD mode**.
 | 4.1 | `lab1-configure-ingresslink/` | iRule, NGINX service/config, CRD-mode CIS, IngressLink CR |
 | 4.2 | `lab2-cafe-app/` | End-to-end test with the bundled cafe app (coffee/tea over TLS) |
 
-## Quick run
+## Run the labs (in order)
+Each lab folder is self-contained: `bash deploy.sh` → `bash verify.sh` → `bash cleanup.sh`.
+First create the BIG-IP iRule `Proxy_Protocol_iRule` (from `lab1.../01-*.tcl`) in TMUI.
+
 ```bash
-# First create the BIG-IP iRule 'Proxy_Protocol_iRule' (lab1/01-*.tcl) in TMUI.
-bash apply-all.sh      # CRDs + NGINX svc/config + CRD-mode CIS + IngressLink CR
-# then deploy the cafe app from lab2-cafe-app/ to test end to end
-bash cleanup-all.sh    # removes cafe, IngressLink, and CIS
+# Lab 4.1 — CRDs + NGINX svc/config + CRD-mode CIS + IngressLink CR
+cd lab1-configure-ingresslink && bash deploy.sh && bash verify.sh && cd ..
+
+# Lab 4.2 — end-to-end test with the cafe app
+cd lab2-cafe-app              && bash deploy.sh && bash verify.sh && bash cleanup.sh && cd ..
+
+# Tear down IngressLink + CIS when finished:
+cd lab1-configure-ingresslink && bash cleanup.sh && cd ..
 ```
 
 ## Compatibility (current docs)
@@ -39,7 +46,7 @@ The original lab passed both `--custom-resource-mode=true` and
 ## Common errors
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `no matches for kind "IngressLink"` | CRDs not installed | apply the unified `customresourcedefinitions.yml` (apply-all does this) |
+| `no matches for kind "IngressLink"` | CRDs not installed | apply the unified `customresourcedefinitions.yml` (lab 4.1 `deploy.sh` does this) |
 | IngressLink VS not created | leftover non-CRD CIS, or wrong mode | delete prior CIS; confirm `--custom-resource-mode=true` (no `--ingress-link-mode`) |
 | App reachable but client IP wrong | PROXY protocol not end-to-end | iRule `Proxy_Protocol_iRule` present + referenced; `proxy-protocol: "True"` in `nginx-config` |
 | iRule reference error on the VS | iRule name/path mismatch | create the iRule as `Proxy_Protocol_iRule` in `/Common` |

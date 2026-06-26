@@ -15,11 +15,14 @@ needs (partition, service account, RBAC, credentials secret).
 
 ## Deploy
 ```bash
-bash 01-setup.sh
-kubectl create -f 02-nodeport-deployment.yaml
-kubectl get deploy k8s-bigip-ctlr-deployment -n kube-system
-kubectl get pods -n kube-system | grep k8s-bigip-ctlr   # wait for Running (~30s)
-kubectl logs <cis-pod> -n kube-system                   # confirm it reached BIG-IP
+bash deploy.sh     # prereqs (01-setup.sh) + CIS controller, waits for the pod to be Running
+bash verify.sh     # confirms the pod is up and reached the BIG-IP
+```
+Under the hood `deploy.sh` runs `01-setup.sh` then renders and applies
+`02-nodeport-deployment.yaml`. To watch it yourself:
+```bash
+kubectl get pods -n kube-system | grep k8s-bigip-ctlr
+kubectl logs deploy/k8s-bigip-ctlr-deployment -n kube-system
 ```
 
 ## What changed vs the lab
@@ -32,10 +35,9 @@ kubectl logs <cis-pod> -n kube-system                   # confirm it reached BIG
   alternative commented in for non-prod.
 
 ## Cleanup
-Leave CIS running for labs 1.2 / 1.3. To remove entirely:
-`kubectl delete -f 02-nodeport-deployment.yaml`
+Leave CIS running for labs 1.2 / 1.3. To remove the controller entirely: `bash cleanup.sh`
 
 ---
 **Verify this lab:** `./lab.sh verify <this-lab-dir>` (from repo root) or
 `bash verify.sh` here. Manifests are templated from `lab-vars.env` — apply with
-`./lab.sh apply <dir>` or the module `apply-all.sh`, not raw `kubectl create`.
+`bash deploy.sh` here (it renders the templates), not raw `kubectl create`. Tear down with `bash cleanup.sh`.

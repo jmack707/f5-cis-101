@@ -64,6 +64,41 @@ pkg_hint() {  # binary
 kapply()  { need envsubst; envsubst "$LABKIT_SUBST" < "$1" | kubectl apply -f - ; }
 kdelete() { envsubst "$LABKIT_SUBST" < "$1" | kubectl delete --ignore-not-found=true -f - ; }
 
+# ---- per-lab deploy / cleanup (student-facing) ----------------------------
+# Each lab folder has a thin deploy.sh / cleanup.sh that call these. They render
+# and apply the folder's ordered NN-*.yaml; third-party NGINX IC manifests (which
+# carry $(POD_*) tokens that must NOT be envsubst'd) are delegated to the lab's
+# install-nginx-ic.sh, exactly as lab.sh does.
+step()  { echo "  ${_GRN}▸${_RST} $*"; }       # narrate a deploy/cleanup step
+lab_apply() {   # dir — render + apply NN-*.yaml in order
+  local dir="$1" f
+  if [ -x "$dir/install-nginx-ic.sh" ]; then bash "$dir/install-nginx-ic.sh"; return; fi
+  while IFS= read -r f; do step "apply  ${f##*/}"; kapply "$f"; done \
+    < <(find "$dir" -maxdepth 1 -name '[0-9][0-9]-*.yaml' | sort)
+}
+lab_delete() {  # dir — delete NN-*.yaml in reverse order
+  local dir="$1" files i
+  mapfile -t files < <(find "$dir" -maxdepth 1 -name '[0-9][0-9]-*.yaml' | sort)
+  # NGINX IC manifests are applied raw (no envsubst), so delete them raw too.
+  if [ -f "$dir/install-nginx-ic.sh" ]; then
+    for ((i=${#files[@]}-1;i>=0;i--)); do step "delete ${files[$i]##*/}"; kubectl delete --ignore-not-found -f "${files[$i]}"; done
+    return
+  fi
+  for ((i=${#files[@]}-1;i>=0;i--)); do step "delete ${files[$i]##*/}"; kdelete "${files[$i]}"; done
+}
+# Each module runs CIS in a different mode — only one controller may run at a
+# time. A module's lab1 calls this to remove any other module's CIS first.
+remove_other_cis() {  # keep_deployment_name
+  local keep="$1" d
+  for d in k8s-bigip-ctlr-deployment k8s-bigip-ctlr; do
+    [ "$d" = "$keep" ] && continue
+    if kubectl -n "$CIS_NAMESPACE" get deploy "$d" >/dev/null 2>&1; then
+      step "removing other CIS controller ($d) — one at a time"
+      kubectl -n "$CIS_NAMESPACE" delete deploy "$d" --ignore-not-found >/dev/null 2>&1 || true
+    fi
+  done
+}
+
 # ---- kubernetes-side assertions ------------------------------------------
 assert_pod_running() {   # ns label
   local ns="$1" label="$2" n
@@ -151,7 +186,7 @@ assert_lb_rotation() {  # url min_distinct [extra curl args...]
 
 # ---- settle: poll until app + BIG-IP config are programmed (pre-verify) ----
 # CIS programs the BIG-IP a few seconds after the Service/Ingress exist, and k8s
-# endpoints take a moment to populate. apply-all calls settle_ingress before
+# endpoints take a moment to populate. each lab's deploy.sh calls settle_ingress before
 # verify so a fresh run doesn't report false failures while things converge.
 _svc_has_endpoints() {  # ns svc  -> true once >=1 endpoint address exists
   local ips

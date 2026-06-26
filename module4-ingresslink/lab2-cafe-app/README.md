@@ -14,10 +14,8 @@ and the NGINX IC from lab 3.1.
 
 ## Deploy
 ```bash
-kubectl create -f 01-cafe.yaml
-kubectl create -f 02-cafe-secret.yaml
-kubectl create -f 03-cafe-ingress.yaml
-kubectl get pods
+bash deploy.sh     # renders + applies the cafe manifests, waits for the coffee/tea pods
+bash verify.sh     # PASS/FAIL checks
 ```
 
 ## Test
@@ -43,13 +41,11 @@ In the response, confirm:
 
 ## Cleanup
 ```bash
-kubectl delete -f 03-cafe-ingress.yaml -f 02-cafe-secret.yaml -f 01-cafe.yaml
-# then tear down IngressLink (lab 4.1):
-kubectl delete -f ../lab1-configure-ingresslink/05-vs-ingresslink.yaml
-kubectl delete -f ../lab1-configure-ingresslink/04-ingresslink-deployment.yaml
+bash cleanup.sh                                  # remove the cafe app
+bash ../lab1-configure-ingresslink/cleanup.sh    # then tear down IngressLink + CIS
 ```
 
 ---
 **Verify this lab:** `./lab.sh verify <this-lab-dir>` (from repo root) or
 `bash verify.sh` here. Manifests are templated from `lab-vars.env` — apply with
-`./lab.sh apply <dir>` or the module `apply-all.sh`, not raw `kubectl create`.
+`bash deploy.sh` here (it renders the templates), not raw `kubectl create`. Tear down with `bash cleanup.sh`.
