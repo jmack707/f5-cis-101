@@ -36,8 +36,10 @@ In the response, confirm:
 ## Notes
 - The TLS cert in `02-cafe-secret.yaml` is the upstream self-signed example for
   `cafe.example.com` — fine for the lab; replace for anything real.
-- `01-cafe.yaml` uses `nginxdemos/nginx-hello:plain-text`, which echoes the
-  server name and request headers (handy for confirming load balancing).
+- `01-cafe.yaml` uses `nginxdemos/hello:plain-text` (listens on :80), which echoes
+  the server name and request headers (handy for confirming load balancing). The
+  upstream NGINX example ships `nginxdemos/nginx-hello:plain-text` (:8080) — same
+  app, swapped here so the whole repo mirrors a single demo image.
 
 ## Cleanup
 ```bash
