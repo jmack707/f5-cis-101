@@ -275,3 +275,17 @@ settle_ingress() {
     printf '.'; sleep 3
   done
 }
+# Poll a URL until it returns HTTP 200 (or timeout). For data paths the settle_ingress
+# checks don't cover — e.g. the cafe app through the NGINX IC, which needs a moment to
+# refresh its upstream after the pods roll. Usage: wait_http_ok <url> [timeout] [curl args...]
+wait_http_ok() {
+  local url="$1" timeout="${2:-60}"; shift 2 || true
+  local t0=$SECONDS code
+  printf '  %s··%s    waiting for HTTP 200 from %s ' "$_YEL" "$_RST" "$url"
+  while :; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url" "$@" 2>/dev/null)
+    if [ "$code" = "200" ]; then echo "ready"; return 0; fi
+    if [ $((SECONDS - t0)) -ge "$timeout" ]; then echo "timeout after ${timeout}s (HTTP ${code:-000}; verifying anyway)"; return 1; fi
+    printf '.'; sleep 3
+  done
+}
