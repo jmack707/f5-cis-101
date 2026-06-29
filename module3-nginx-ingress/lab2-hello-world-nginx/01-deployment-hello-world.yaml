@@ -16,11 +16,11 @@ spec:
     spec:
       containers:
         - name: f5-hello-world-web
-          image: nginxdemos/hello:plain-text
+          image: nginxdemos/nginx-hello
           imagePullPolicy: IfNotPresent
           env:
             - name: service_name
               value: f5-hello-world-web
           ports:
-            - containerPort: 80
+            - containerPort: 8080
               protocol: TCP
