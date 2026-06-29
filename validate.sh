@@ -38,7 +38,8 @@ say "[4] render + lint manifests"
 # Use lab-vars.env if present, else the committed example (CI has no real one).
 VARS_FILE=lab-vars.env; [ -f "$VARS_FILE" ] || VARS_FILE=lab-vars.env.example
 set -a; . "./$VARS_FILE"; set +a
-SUBST='${BIGIP_MGMT} ${BIGIP_PARTITION} ${CIS_IMAGE} ${CIS_NAMESPACE} ${NODEPORT_VIP} ${CLUSTER_VIP} ${NGINX_FRONT_VIP} ${INGRESSLINK_VIP} ${AS3_SCHEMA_VERSION}'
+: "${AS3_TENANT:=AS3}"    # backward-compat default for older lab-vars.env files
+SUBST='${BIGIP_MGMT} ${BIGIP_PARTITION} ${CIS_IMAGE} ${CIS_NAMESPACE} ${NODEPORT_VIP} ${CLUSTER_VIP} ${NGINX_FRONT_VIP} ${INGRESSLINK_VIP} ${AS3_SCHEMA_VERSION} ${AS3_TENANT}'
 if ! command -v envsubst >/dev/null 2>&1; then bad "envsubst missing (install gettext/gettext-base)"; fi
 python3 - "$SUBST" <<'PY' || rc=1
 import subprocess, glob, sys
