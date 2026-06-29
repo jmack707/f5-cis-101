@@ -35,7 +35,7 @@ In the response, confirm:
 - The TLS cert in `02-cafe-secret.yaml` is the upstream self-signed example for
   `cafe.example.com` — fine for the lab; replace for anything real.
 - `01-cafe.yaml` uses `nginxdemos/nginx-hello` (the styled HTML page, listens on
-  :80), which shows the serving pod's name/address — handy for confirming load
+  **:8080**), which shows the serving pod's name/address — handy for confirming load
   balancing in a browser. The upstream NGINX example ships the `:plain-text` tag;
   we use the default (webpage) tag, consistent with the rest of the repo.
 

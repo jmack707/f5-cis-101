@@ -78,6 +78,10 @@ shell harness; manifests are templated so the same files run on any topology.
   holding the locator block, write `&&` literally — escaping it as `\&\&` produces
   a broken `cd ... \&\& pwd` that `bash -n` does NOT catch (`cd a b` is valid
   syntax). `validate.sh` step [2] guards this.
+- **`nginxdemos/nginx-hello` listens on `8080`** (not 80, despite its upstream
+  README/conf): the demo deployments use `containerPort: 8080` and the Services
+  `targetPort: 8080`, while the Service `port`, Ingress, and AS3 `servicePort` stay
+  `80`. If pool members come up DOWN with HTTP `000`, check this port.
 - **AS3 ConfigMap pool members need `"shareNodes": true`** (a boolean): when CIS
   injects discovered members into an AS3-ConfigMap pool, it sets `shareNodes` on the
   member, and if the template doesn't declare it as a boolean the BIG-IP rejects the

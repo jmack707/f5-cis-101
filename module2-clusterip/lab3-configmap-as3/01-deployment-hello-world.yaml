@@ -22,5 +22,5 @@ spec:
             - name: service_name
               value: f5-hello-world-web
           ports:
-            - containerPort: 80
+            - containerPort: 8080
               protocol: TCP
