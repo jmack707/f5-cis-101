@@ -25,19 +25,39 @@ live pool members. Two pieces work together:
 | `cis.f5.com/as3-pool: web_pool` | …this **Pool** — must match the pool name in the declaration |
 
 **2. The ConfigMap** (`03-configmap…yaml`) is the AS3 declaration itself. The labels
-`f5type: virtual-server` + `as3: "true"` flag it as "an AS3 declaration to post." Its
-nested structure maps straight onto BIG-IP objects:
+`f5type: virtual-server` + `as3: "true"` flag it as "an AS3 declaration to post." It
+nests **Tenant → Application → (virtual server + pool)**, and each level maps to a
+BIG-IP object. Here's the declaration, abbreviated (the `//` notes are added for
+clarity — real AS3 JSON has no comments):
 
-```
-AS3                         (request wrapper)
-└─ ADC                      (schemaVersion must be ≤ your BIG-IP's AS3 build)
-   └─ ${AS3_TENANT}         Tenant      → becomes the BIG-IP partition
-      └─ A1                 Application (template: generic = name the VS freely)
-         ├─ hello_world_vs  Service_HTTP → the virtual server
-         │     virtualAddresses = the VIP · virtualPort = 80 · pool = web_pool
-         └─ web_pool        Pool
-               monitors: [http]                         (BIG-IP health monitor)
-               members: servicePort + shareNodes:true + serverAddresses:[]
+```jsonc
+{
+  "class": "AS3",
+  "declaration": {
+    "class": "ADC",
+    "schemaVersion": "3.50.0",            // must be <= your BIG-IP's AS3 build
+    "${AS3_TENANT}": {                    // Tenant  ->  a BIG-IP PARTITION (the key is the name)
+      "class": "Tenant",
+      "A1": {                             // Application — a folder for the objects below
+        "class": "Application",
+        "template": "generic",            // 'generic' lets you name the virtual server anything
+        "hello_world_vs": {               // ->  the BIG-IP VIRTUAL SERVER
+          "class": "Service_HTTP",
+          "virtualAddresses": ["<VIP>"],  // the address it listens on
+          "virtualPort": 80,
+          "pool": "web_pool"              // which pool to load-balance to
+        },
+        "web_pool": {                     // ->  the BIG-IP POOL
+          "class": "Pool",
+          "monitors": ["http"],           // health monitor
+          "members": [
+            { "servicePort": 80, "shareNodes": true, "serverAddresses": [] }
+          ]
+        }
+      }
+    }
+  }
+}
 ```
 
 - `serverAddresses: []` is **empty on purpose** — CIS fills it from the labeled
