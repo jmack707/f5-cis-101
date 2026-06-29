@@ -9,6 +9,12 @@ CIS_CRD_VERSION="${CIS_CRD_VERSION:-2.x-master}"
 
 echo "== Lab 4.1 — Configure F5 IngressLink =="
 echo "   Requires the NGINX IC from module 3 lab 3.1 (this lab reuses it)."
+if ! kubectl -n nginx-ingress get deploy nginx-ingress >/dev/null 2>&1; then
+  echo "  ${_RED}✗${_RST} NGINX Ingress Controller not found (namespace/deployment 'nginx-ingress')."
+  echo "    IngressLink fronts the NGINX IC — deploy it first, then re-run this lab:"
+  echo "      (cd ../../module3-nginx-ingress/lab1-deploy-nginx-ic && bash deploy.sh)"
+  exit 1
+fi
 echo
 remove_other_cis k8s-bigip-ctlr
 step "ensure BIG-IP iRule 'Proxy_Protocol_iRule' (iControl REST — no TMUI step)"
