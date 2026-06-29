@@ -24,4 +24,6 @@ step "waiting for the CIS controller pod to be ready"
 kubectl -n "$CIS_NAMESPACE" rollout status deploy/k8s-bigip-ctlr --timeout=120s || true
 step "apply  05-vs-ingresslink.yaml (the IngressLink CR)"
 kapply 05-vs-ingresslink.yaml
+step "waiting for endpoints + the IngressLink virtual server"
+settle_ingress nginx-ingress nginx-ingress-ingresslink "$INGRESSLINK_VIP" "$BIGIP_PARTITION" 120
 echo; echo "✓ IngressLink configured.  Next:  bash verify.sh"
