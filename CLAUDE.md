@@ -35,7 +35,8 @@ shell harness; manifests are templated so the same files run on any topology.
 1. **Never hardcode topology** (IPs, VIPs, image tags, partition) in a manifest.
    Add a variable to `lab-vars.env.example` (and your local `lab-vars.env`),
    reference it as `${VAR}`, and add it to the `LABKIT_SUBST` allowlist in
-   `lib/labkit.sh`. Otherwise it won't be rendered.
+   `lib/labkit-subst.sh` (the single source of truth, shared by `labkit.sh` and
+   `validate.sh`). Otherwise it won't be rendered.
 2. **Apply templated files only via `kapply`/`lab.sh`/`deploy.sh`** — never raw
    `kubectl create -f` (it would send literal `${VAR}` to the cluster).
 3. **Do NOT envsubst third-party manifests** that use `$(POD_NAMESPACE)` etc.
