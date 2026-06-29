@@ -25,8 +25,8 @@ data:
                 "class": "Tenant",
                 "A1": {
                     "class": "Application",
-                    "template": "http",
-                    "serviceMain": {
+                    "template": "generic",
+                    "hello_world_vs": {
                         "class": "Service_HTTP",
                         "virtualAddresses": [
                             "${NODEPORT_VIP}"
