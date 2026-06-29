@@ -9,5 +9,5 @@ cd "$HERE"
 echo "== Lab 3.2 — Publish the app behind NGINX, fronted by CIS =="
 lab_apply "$HERE"
 step "waiting for endpoints + the CIS-programmed virtual server"
-settle_ingress nginx-ingress nginx-ingress-hello-world "$NGINX_FRONT_VIP" AS3 120
+settle_ingress nginx-ingress nginx-ingress-hello-world "$NGINX_FRONT_VIP" "$AS3_TENANT" 120
 echo; echo "✓ deployed.  Next:  bash verify.sh"

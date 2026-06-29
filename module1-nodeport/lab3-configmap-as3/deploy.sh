@@ -7,9 +7,9 @@ source "$ROOT/lib/labkit.sh"
 cd "$HERE"
 
 echo "== Lab 1.3 — Publish hello-world via ConfigMap/AS3 (NodePort) =="
-echo "   Note: this uses VIP $NODEPORT_VIP in partition AS3. Lab 1.2 publishes the"
+echo "   Note: this uses VIP $NODEPORT_VIP in partition $AS3_TENANT. Lab 1.2 publishes the"
 echo "   same VIP via Ingress — run 'bash ../lab2-ingress/cleanup.sh' first if it's up."
 lab_apply "$HERE"
 step "waiting for endpoints + the AS3-programmed virtual server"
-settle_ingress default f5-hello-world-web "$NODEPORT_VIP" AS3 90
+settle_ingress default f5-hello-world-web "$NODEPORT_VIP" "$AS3_TENANT" 90
 echo; echo "✓ deployed.  Next:  bash verify.sh"

@@ -21,9 +21,13 @@ else
   exit 1
 fi
 
+# Backward-compatible default: the AS3 tenant name (= the BIG-IP partition the AS3
+# labs create). lab-vars.env files that predate this var fall back to AS3.
+: "${AS3_TENANT:=AS3}"; export AS3_TENANT
+
 # Only these vars are substituted into manifests (allowlist keeps $(POD_NAME)
 # and other shell-looking tokens in third-party YAML untouched).
-LABKIT_SUBST='${BIGIP_MGMT} ${BIGIP_PARTITION} ${CIS_IMAGE} ${CIS_NAMESPACE} ${NODEPORT_VIP} ${CLUSTER_VIP} ${NGINX_FRONT_VIP} ${INGRESSLINK_VIP} ${AS3_SCHEMA_VERSION}'
+LABKIT_SUBST='${BIGIP_MGMT} ${BIGIP_PARTITION} ${CIS_IMAGE} ${CIS_NAMESPACE} ${NODEPORT_VIP} ${CLUSTER_VIP} ${NGINX_FRONT_VIP} ${INGRESSLINK_VIP} ${AS3_SCHEMA_VERSION} ${AS3_TENANT}'
 
 # ---- colored status + counters -------------------------------------------
 _GRN=$'\033[32m'; _RED=$'\033[31m'; _YEL=$'\033[33m'; _RST=$'\033[0m'
