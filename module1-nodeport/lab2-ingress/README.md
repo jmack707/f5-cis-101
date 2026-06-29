@@ -1,6 +1,6 @@
 # Lab 1.2 — Deploy Hello-World via Ingress (NodePort)
 
-Publishes the hello-world app (`nginxdemos/hello`, which echoes its pod name so
+Publishes the hello-world app (`nginxdemos/nginx-hello`, which echoes its pod name so
 you can watch load balancing) to BIG-IP using a Kubernetes **Ingress** with
 `virtual-server.f5.com/*` annotations. Requires the CIS controller from lab 1.1.
 

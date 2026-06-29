@@ -219,10 +219,13 @@ assert_code() {  # expected URL [extra curl args...]
 assert_lb_rotation() {  # url min_distinct [extra curl args...]
   local url="$1" min="${2:-2}"; shift 2 || true
   local seen
-  # The demo apps (nginxdemos/hello and nginxdemos/nginx-hello) echo the serving
-  # pod as "Server name: <pod>". Hit the VIP a dozen times and count distinct pods.
+  # nginxdemos/nginx-hello serves an HTML page that shows the serving pod as
+  # "<span>Server&nbsp;name:</span> <span>POD</span>". Flatten the HTML (decode
+  # &nbsp;, strip tags, collapse whitespace) so the pod name follows "Server name:",
+  # then count distinct pods across a dozen requests.
   seen=$(for _ in $(seq 1 12); do curl -s --max-time 5 "$url" "$@" 2>/dev/null; done \
-         | grep -oiE 'Server name:[[:space:]]*[^<[:space:]]+' | sort -u | wc -l)
+         | tr '\n' ' ' | sed -E 's/&nbsp;/ /g; s/<[^>]*>/ /g; s/[[:space:]]+/ /g' \
+         | grep -oiE 'Server name: [^ ]+' | sort -u | wc -l)
   [ "$seen" -ge "$min" ] && pass "load-balanced across $seen backends" \
     || fail "saw $seen distinct backend(s), expected >= $min"
 }
