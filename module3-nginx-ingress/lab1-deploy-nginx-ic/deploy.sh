@@ -8,8 +8,7 @@ cd "$HERE"
 
 echo "== Lab 3.1 — Install the NGINX Ingress Controller =="
 # Third-party manifests carry $(POD_*) tokens that must NOT be envsubst'd, so
-# lab_apply delegates to install-nginx-ic.sh (plain kubectl apply).
+# lab_apply delegates to install-nginx-ic.sh — which applies them in order AND
+# waits for the controller rollout, so no extra wait is needed here.
 lab_apply "$HERE"
-step "waiting for the NGINX IC pod to be ready"
-kubectl -n nginx-ingress wait --for=condition=available deploy -l app=nginx-ingress --timeout=120s || true
 echo; echo "✓ NGINX IC is running.  Next:  bash verify.sh"
