@@ -11,6 +11,51 @@ Requires the CIS controller from lab 1.1.
 | `02-nodeport-service-hello-world.yaml` | NodePort service with AS3 discovery labels |
 | `03-configmap-hello-world.yaml` | AS3 declaration (Service_HTTP + web_pool) |
 
+## Anatomy — the AS3 ConfigMap + label-based discovery
+This lab reaches the **same** BIG-IP VS+pool as 1.2, but instead of annotations you
+author the BIG-IP config explicitly as an **AS3 declaration** and let CIS fill in the
+live pool members. Two pieces work together:
+
+**1. The Service labels** (`02-…service…yaml`) tell CIS *where* to inject endpoints:
+
+| Label | Meaning |
+|-------|---------|
+| `cis.f5.com/as3-tenant: ${AS3_TENANT}` | inject into this **Tenant** (= the BIG-IP partition) |
+| `cis.f5.com/as3-app: A1` | …this **Application** |
+| `cis.f5.com/as3-pool: web_pool` | …this **Pool** — must match the pool name in the declaration |
+
+**2. The ConfigMap** (`03-configmap…yaml`) is the AS3 declaration itself. The labels
+`f5type: virtual-server` + `as3: "true"` flag it as "an AS3 declaration to post." Its
+nested structure maps straight onto BIG-IP objects:
+
+```
+AS3                         (request wrapper)
+└─ ADC                      (schemaVersion must be ≤ your BIG-IP's AS3 build)
+   └─ ${AS3_TENANT}         Tenant      → becomes the BIG-IP partition
+      └─ A1                 Application (template: generic = name the VS freely)
+         ├─ hello_world_vs  Service_HTTP → the virtual server
+         │     virtualAddresses = the VIP · virtualPort = 80 · pool = web_pool
+         └─ web_pool        Pool
+               monitors: [http]                         (BIG-IP health monitor)
+               members: servicePort + shareNodes:true + serverAddresses:[]
+```
+
+- `serverAddresses: []` is **empty on purpose** — CIS fills it from the labeled
+  Service's discovered endpoints (that's the "discovery" part).
+- `shareNodes: true` is **required** (a boolean); without it the BIG-IP rejects the
+  whole declaration with `422 … shareNodes: should be boolean`.
+- The Tenant name becomes a BIG-IP **partition** — keep it distinct from
+  `BIGIP_PARTITION` (the one CIS itself manages for Ingress).
+
+**Flow:** static declaration (ConfigMap) + live endpoints (Service labels) → CIS
+merges them and posts AS3 → BIG-IP creates the partition / VS / pool. Scale the
+Deployment and watch the pool members track the pods.
+
+**Ingress (1.2) vs ConfigMap/AS3 (1.3):** same outcome, different control surface.
+Ingress = a few annotations and CIS authors the AS3 for you; ConfigMap/AS3 = you write
+the full declaration (more direct control of the BIG-IP objects) and CIS only fills in
+the members.
+
 ## Deploy
 > Publishes the same VIP as lab 1.2 (a different way), so run
 > `bash ../lab2-ingress/cleanup.sh` first if lab 1.2 is still up.

@@ -9,6 +9,22 @@ needs (partition, service account, RBAC, credentials secret).
 | `01-setup.sh` | ServiceAccount, ClusterRoleBinding, BIG-IP credentials secret (+ optional trusted-certs) |
 | `02-nodeport-deployment.yaml` | CIS controller, NodePort mode (hardened) |
 
+## Anatomy — what makes CIS work, and why
+CIS (`02-nodeport-deployment.yaml`) is just a pod that **watches the Kubernetes API
+and programs the BIG-IP**. It creates nothing until you give it an Ingress (1.2) or
+an AS3 ConfigMap (1.3) to act on. The fields that matter:
+
+| Field | Why it matters |
+|-------|----------------|
+| `serviceAccountName: k8s-bigip-ctlr` (+ the ClusterRoleBinding from `01-setup.sh`) | RBAC so CIS can **watch** Services, Endpoints, Ingresses and ConfigMaps. No permission → CIS sees nothing to publish. |
+| `--credentials-directory=/tmp/creds` (the volume-mounted `f5-bigip-ctlr-login` secret) | How CIS authenticates to the BIG-IP over **iControl REST** (username / password / url). This is the CIS→BIG-IP control channel. |
+| `--bigip-partition=${BIGIP_PARTITION}` | The BIG-IP partition CIS **owns** — it freely adds/removes objects there, so keep it dedicated. |
+| `--pool-member-type=nodeport` | **The mode decision.** Pool members become `<nodeIP>:<nodePort>`, so the BIG-IP only needs to reach node IPs — no pod-network routing. (Module 2 uses `cluster` = pod IPs.) |
+| `--custom-resource-mode=false` | CIS processes **Ingress + AS3 ConfigMaps** (labs 1.2 / 1.3), *not* VirtualServer CRDs. Set `true` only for CRD / IngressLink (Module 4). |
+| `--as3-validation=true` / `--log-as3-response=true` | CIS validates the AS3 it builds and logs the BIG-IP's response — your first stop when a VS doesn't appear (`kubectl logs deploy/k8s-bigip-ctlr-deployment -n kube-system`). |
+| `--insecure=true` | Skip BIG-IP cert validation — **lab only**; production uses a trusted-certs ConfigMap. |
+| `replicas: 1` | Only **one** CIS may manage a partition; multiple controllers fight over it. |
+
 ## BIG-IP prep
 - `deploy.sh` creates the `kubernetes` partition for you via iControl REST (uses the
   credentials in `lab-vars.env` — no SSH, no password prompt).
