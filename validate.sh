@@ -39,7 +39,8 @@ say "[4] render + lint manifests"
 VARS_FILE=lab-vars.env; [ -f "$VARS_FILE" ] || VARS_FILE=lab-vars.env.example
 set -a; . "./$VARS_FILE"; set +a
 : "${AS3_TENANT:=AS3}"    # backward-compat default for older lab-vars.env files
-SUBST='${BIGIP_MGMT} ${BIGIP_PARTITION} ${CIS_IMAGE} ${CIS_NAMESPACE} ${NODEPORT_VIP} ${CLUSTER_VIP} ${NGINX_FRONT_VIP} ${INGRESSLINK_VIP} ${AS3_SCHEMA_VERSION} ${AS3_TENANT}'
+. ./lib/labkit-subst.sh  # single source of truth for the allowlist (shared with labkit.sh)
+SUBST="$LABKIT_SUBST"
 if ! command -v envsubst >/dev/null 2>&1; then bad "envsubst missing (install gettext/gettext-base)"; fi
 python3 - "$SUBST" <<'PY' || rc=1
 import subprocess, glob, sys
