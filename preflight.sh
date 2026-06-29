@@ -77,7 +77,7 @@ if bigip_rest "tm/sys/version" | grep -q '"kind"'; then
   # partition
   has_part=$(bigip_get "auth/partition" | python3 -c "import sys,json;print('yes' if any(i.get('name')=='$BIGIP_PARTITION' for i in json.load(sys.stdin).get('items',[])) else 'no')" 2>/dev/null)
   [ "$has_part" = yes ] && pass "partition '$BIGIP_PARTITION' exists" \
-    || warn "partition '$BIGIP_PARTITION' missing — apply-all.sh / setup scripts will create it"
+    || warn "partition '$BIGIP_PARTITION' missing — lab1 deploy.sh / setup scripts will create it"
 else
   fail "BIG-IP iControl REST not reachable at $BIGIP_MGMT — check BIGIP_MGMT/BIGIP_USER/BIGIP_PASS in lab-vars.env and L3 connectivity"
 fi

@@ -22,9 +22,23 @@ flannel node.
 - If module 1's CIS controller is still running, delete it first — only one CIS
   controller at a time.
 
-## Order
-Lab 2.1 (CIS up) → 2.2 and 2.3 (each deploys app, verifies, cleans up). Leave the
-cluster-mode CIS running if you're continuing to module 3 (it reuses it).
+## Run the labs (in order)
+Each lab folder is self-contained: `bash deploy.sh` → `bash verify.sh` → `bash cleanup.sh`.
+Lab 2.1's `deploy.sh` removes any other module's CIS first (one controller at a time).
+
+```bash
+# Lab 2.1 — install CIS (cluster mode, static routes)
+cd lab1-install-cis    && bash deploy.sh && bash verify.sh && cd ..
+
+# Lab 2.2 — publish via Ingress
+cd lab2-ingress        && bash deploy.sh && bash verify.sh
+bash cleanup.sh        && cd ..    # clean up before 2.3 — it reuses the same VIP
+
+# Lab 2.3 — publish via ConfigMap/AS3
+cd lab3-configmap-as3  && bash deploy.sh && bash verify.sh && bash cleanup.sh && cd ..
+```
+> Leave the cluster-mode CIS running (don't `cleanup.sh` lab 2.1) if you're
+> continuing to **module 3** — it reuses this controller.
 
 ## CNI note
 `--orchestration-cni=flannel` matches the lab cluster's CNI. For other CNIs swap

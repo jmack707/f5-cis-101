@@ -13,11 +13,17 @@ cluster-mode (static-route) CIS from module 2.
 ## Prerequisites
 - Module 2's cluster-mode CIS (`module2-clusterip/lab1-install-cis/03-cluster-deployment.yaml`) running.
 
-## Quick run
+## Run the labs (in order)
+Each lab folder is self-contained: `bash deploy.sh` → `bash verify.sh` → `bash cleanup.sh`.
+
 ```bash
-bash apply-all.sh      # installs NGINX IC (3.1) + the CIS-published demo (3.2)
-bash cleanup-all.sh    # removes the demo (leaves the IC for module 4)
+# Lab 3.1 — install the NGINX Ingress Controller
+cd lab1-deploy-nginx-ic    && bash deploy.sh && bash verify.sh && cd ..
+
+# Lab 3.2 — app behind NGINX, published to BIG-IP by CIS
+cd lab2-hello-world-nginx  && bash deploy.sh && bash verify.sh && bash cleanup.sh && cd ..
 ```
+> Leave the NGINX IC running (don't `cleanup.sh` lab 3.1) — **module 4 reuses it.**
 
 > Source: https://clouddocs.f5.com/training/community/containers/html/class1/module3/module3.html
 

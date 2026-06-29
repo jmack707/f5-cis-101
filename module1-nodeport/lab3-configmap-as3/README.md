@@ -12,11 +12,11 @@ Requires the CIS controller from lab 1.1.
 | `03-configmap-hello-world.yaml` | AS3 declaration (Service_HTTP + web_pool) |
 
 ## Deploy
+> Publishes the same VIP as lab 1.2 (a different way), so run
+> `bash ../lab2-ingress/cleanup.sh` first if lab 1.2 is still up.
 ```bash
-kubectl create -f 01-deployment-hello-world.yaml
-kubectl create -f 02-nodeport-service-hello-world.yaml
-kubectl create -f 03-configmap-hello-world.yaml
-kubectl get pods -o wide
+bash deploy.sh     # renders + applies the manifests above, in order, then waits until ready
+bash verify.sh     # PASS/FAIL checks
 ```
 
 ## Verify on BIG-IP
@@ -33,15 +33,12 @@ update.
 
 ## Cleanup
 ```bash
-kubectl delete -f 03-configmap-hello-world.yaml
-kubectl delete -f 02-nodeport-service-hello-world.yaml
-kubectl delete -f 01-deployment-hello-world.yaml
+bash cleanup.sh
 ```
 Verify the AS3 partition is gone on BIG-IP (can take ~30s). If you're done with
-NodePort mode, remove CIS:
-`kubectl delete -f ../lab1-install-cis/02-nodeport-deployment.yaml`
+NodePort mode, remove CIS too: `bash ../lab1-install-cis/cleanup.sh`
 
 ---
 **Verify this lab:** `./lab.sh verify <this-lab-dir>` (from repo root) or
 `bash verify.sh` here. Manifests are templated from `lab-vars.env` — apply with
-`./lab.sh apply <dir>` or the module `apply-all.sh`, not raw `kubectl create`.
+`bash deploy.sh` here (it renders the templates), not raw `kubectl create`. Tear down with `bash cleanup.sh`.

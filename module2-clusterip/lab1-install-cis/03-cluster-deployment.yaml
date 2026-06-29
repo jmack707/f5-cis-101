@@ -43,13 +43,13 @@ spec:
           livenessProbe:
             httpGet: { path: /health, port: 8080, scheme: HTTP }
             initialDelaySeconds: 15
-            periodSeconds: 120
-            timeoutSeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
           readinessProbe:
             httpGet: { path: /health, port: 8080, scheme: HTTP }
-            initialDelaySeconds: 30
-            periodSeconds: 120
-            timeoutSeconds: 15
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
           volumeMounts:
             - name: bigip-creds
               mountPath: "/tmp/creds"
