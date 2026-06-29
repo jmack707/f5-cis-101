@@ -5,23 +5,22 @@ Wires a BIG-IP VS (CIS IngressLink CRD) to the NGINX IC pods with PROXY protocol
 ## Files
 | File | Purpose | Apply with |
 |------|---------|-----------|
-| `01-Proxy_Protocol_iRule.tcl` | iRule pasted into BIG-IP (name: `Proxy_Protocol_iRule`) | TMUI |
+| `01-Proxy_Protocol_iRule.tcl` | iRule body (name: `Proxy_Protocol_iRule`) | `deploy.sh` (iControl REST) |
 | `02-nginx-service.yaml` | NGINX IC service on 80/443 (+ optional 8081 readiness) | `kubectl create` |
 | `03-nginx-config.yaml` | enables PROXY protocol on the IC | `kubectl apply` |
 | `04-ingresslink-deployment.yaml` | CIS in CRD mode (static routes) | `kubectl create` |
 | `05-vs-ingresslink.yaml` | IngressLink CR (VIP 10.1.1.4) | `kubectl create` |
 
 ## Deploy
-**Prerequisites:** the NGINX IC from module 3 lab 3.1 must be running, and on the
-BIG-IP you must create iRule `Proxy_Protocol_iRule` from `01-Proxy_Protocol_iRule.tcl`
-(TMUI ▸ Local Traffic ▸ iRules ▸ Create) for the real client IP to pass through.
+**Prerequisite:** the NGINX IC from module 3 lab 3.1 must be running.
 
 ```bash
-bash deploy.sh     # CRDs + NGINX svc/config + CRD-mode CIS + IngressLink CR (removes other CIS first)
+bash deploy.sh     # iRule + CRDs + NGINX svc/config + CRD-mode CIS + IngressLink CR
 bash verify.sh     # PASS/FAIL checks
 ```
-`deploy.sh` installs the IngressLink CRD bundle for you; override the version with
-`CIS_CRD_VERSION=v2.20.0 bash deploy.sh`.
+`deploy.sh` creates the `Proxy_Protocol_iRule` on the BIG-IP (iControl REST) and
+installs the IngressLink CRD bundle for you — no TMUI step. Override the CRD
+version with `CIS_CRD_VERSION=v2.20.0 bash deploy.sh`.
 
 ## Verify
 TMUI ▸ Local Traffic ▸ **kubernetes** partition: two virtual servers,

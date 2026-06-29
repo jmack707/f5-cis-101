@@ -12,7 +12,7 @@ the real client IP through to the app. CIS runs in **CRD mode**.
 
 ## Run the labs (in order)
 Each lab folder is self-contained: `bash deploy.sh` → `bash verify.sh` → `bash cleanup.sh`.
-First create the BIG-IP iRule `Proxy_Protocol_iRule` (from `lab1.../01-*.tcl`) in TMUI.
+Lab 4.1's `deploy.sh` creates the `Proxy_Protocol_iRule` on the BIG-IP for you (iControl REST).
 
 ```bash
 # Lab 4.1 — CRDs + NGINX svc/config + CRD-mode CIS + IngressLink CR

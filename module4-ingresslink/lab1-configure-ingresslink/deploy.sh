@@ -8,12 +8,11 @@ cd "$HERE"
 CIS_CRD_VERSION="${CIS_CRD_VERSION:-2.x-master}"
 
 echo "== Lab 4.1 — Configure F5 IngressLink =="
-echo "   PREREQUISITES (do these first):"
-echo "    • NGINX IC from module 3 lab1 must be running (this lab reuses it)."
-echo "    • On the BIG-IP, create iRule 'Proxy_Protocol_iRule' from 01-Proxy_Protocol_iRule.tcl"
-echo "      (TMUI ▸ Local Traffic ▸ iRules ▸ Create) — needed for the real client IP."
+echo "   Requires the NGINX IC from module 3 lab 3.1 (this lab reuses it)."
 echo
 remove_other_cis k8s-bigip-ctlr
+step "ensure BIG-IP iRule 'Proxy_Protocol_iRule' (iControl REST — no TMUI step)"
+ensure_irule Proxy_Protocol_iRule 01-Proxy_Protocol_iRule.tcl
 step "install the IngressLink CRD bundle (${CIS_CRD_VERSION})"
 kubectl apply -f "https://raw.githubusercontent.com/F5Networks/k8s-bigip-ctlr/${CIS_CRD_VERSION}/docs/config_examples/customResourceDefinitions/customresourcedefinitions.yml"
 step "apply  02-nginx-service.yaml + 03-nginx-config.yaml (NGINX IC svc + PROXY protocol)"

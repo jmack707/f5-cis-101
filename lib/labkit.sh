@@ -113,6 +113,31 @@ ensure_partition() {
     *)       warn "partition create on ${BIGIP_MGMT} returned HTTP ${code:-000} (continuing)" ;;
   esac
 }
+# Create/update a BIG-IP iRule in /Common from a .tcl file via iControl REST — no
+# TMUI step. Used by Module 4 (IngressLink references /Common/Proxy_Protocol_iRule).
+ensure_irule() {  # name tcl_file
+  python3 - "$1" "$2" "$BIGIP_MGMT" "$BIGIP_USER" "$BIGIP_PASS" <<'PY' || warn "iRule create failed (continuing)"
+import sys, json, ssl, base64, urllib.request, urllib.error
+name, path, mgmt, user, pw = sys.argv[1:6]
+body = open(path).read()
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+auth = base64.b64encode(f"{user}:{pw}".encode()).decode()
+def call(method, url, payload):
+    req = urllib.request.Request(url, data=json.dumps(payload).encode(), method=method,
+        headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, context=ctx, timeout=15) as r: return r.status
+    except urllib.error.HTTPError as e: return e.code
+st = call("POST", f"https://{mgmt}/mgmt/tm/ltm/rule", {"name": name, "apiAnonymous": body})
+if st in (200, 201):
+    print(f"  \033[32m▸\033[0m iRule '{name}' created (iControl REST)")
+elif st == 409:
+    st2 = call("PUT", f"https://{mgmt}/mgmt/tm/ltm/rule/{name}", {"apiAnonymous": body})
+    print(f"  \033[32m▸\033[0m iRule '{name}' " + ("updated" if st2 in (200,201) else f"exists (update HTTP {st2})"))
+else:
+    print(f"  \033[33m··\033[0m iRule '{name}' create returned HTTP {st}")
+PY
+}
 
 # ---- kubernetes-side assertions ------------------------------------------
 assert_pod_running() {   # ns label
