@@ -9,7 +9,8 @@
 #
 # Also hardened (non-root, dropped caps, probes), switched to
 # credentials-directory, and converted from flannel VXLAN to STATIC ROUTES
-# (--static-routing-mode=true + --orchestration-cni=flannel) like module 2.
+# (--static-routing-mode=true + --orchestration-cni=${ORCHESTRATION_CNI}) like
+# module 2. The CNI value comes from lab-vars.env (defaults to flannel).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -65,7 +66,7 @@ spec:
             - --bigip-partition=${BIGIP_PARTITION}
             - --pool-member-type=cluster
             - --static-routing-mode=true       # write routes to BIG-IP, no VXLAN
-            - --orchestration-cni=flannel       # cluster CNI
+            - --orchestration-cni=${ORCHESTRATION_CNI}   # set in lab-vars.env (defaults to flannel)
             - --insecure=true                 # lab/non-prod only
             - --log-level=INFO
             - --custom-resource-mode=true      # CRD mode enables IngressLink

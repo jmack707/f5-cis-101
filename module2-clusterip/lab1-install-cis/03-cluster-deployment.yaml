@@ -4,7 +4,8 @@
 # credentials-directory). Cluster-mode specifics: pool-member-type=cluster.
 # Static routing replaces the flannel VXLAN tunnel: CIS writes pod-CIDR routes
 # (k8s-<node>-<nodeip>) directly onto BIG-IP - no tunnel, no flannel-name, no
-# BIG-IP flannel node. CNI here is flannel, so --orchestration-cni=flannel.
+# BIG-IP flannel node. The CNI is set via ${ORCHESTRATION_CNI} (lab-vars.env;
+# defaults to flannel) so the same manifest runs on calico/cilium/antrea too.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -60,7 +61,7 @@ spec:
             - --bigip-partition=${BIGIP_PARTITION}
             - --pool-member-type=cluster
             - --static-routing-mode=true       # write routes to BIG-IP, no VXLAN
-            - --orchestration-cni=flannel       # cluster CNI; CIS reads node podCIDR/IP
+            - --orchestration-cni=${ORCHESTRATION_CNI}   # set in lab-vars.env; CIS reads node podCIDR/IP per CNI
             - --insecure=true                   # lab/non-prod only
             - --log-level=INFO
             - --custom-resource-mode=false      # ConfigMap/Ingress, not CRDs

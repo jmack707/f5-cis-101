@@ -19,7 +19,7 @@ and *how the BIG-IP reaches them*. Everything else (RBAC, credentials-directory,
 |-------|----------------|
 | `--pool-member-type=cluster` | **The mode decision.** Pool members become **pod IPs** on the cluster overlay network — not `<nodeIP>:<nodePort>`. Scaling the app changes the member list directly (module 1's NodePort members stayed fixed at the node count). |
 | `--static-routing-mode=true` | CIS **writes routes onto the BIG-IP** (named `k8s-<node>-<nodeip>`) so it can reach pod CIDRs. This replaces the old flannel VXLAN tunnel — no `--flannel-name`, no BIG-IP flannel node, no overlay encapsulation. |
-| `--orchestration-cni=flannel` | Tells CIS which CNI the cluster runs so it reads pod CIDR / node IP from the right node fields (`node.Spec.PodCIDR`, `node.Status.Addresses`) when building those routes. |
+| `--orchestration-cni=${ORCHESTRATION_CNI}` | Tells CIS which CNI the cluster runs so it reads pod CIDR / node IP from the right node fields (`node.Spec.PodCIDR`, `node.Status.Addresses`) when building those routes. Set in `lab-vars.env` (defaults to `flannel`); change it to `calico-k8s` / `cilium-k8s` / `antrea` to run the same manifest on another CNI. |
 | `--bigip-partition` / `--custom-resource-mode=false` / credentials-directory | Unchanged from lab 1.1 — same control channel, same partition ownership, same Ingress + ConfigMap processing. |
 
 **Flow:** CIS starts → reads each node's pod CIDR + node IP → writes a static route per
@@ -43,8 +43,8 @@ ssh admin@<bigip> 'tmsh list net route | grep k8s-'
 ```
 
 ## Key args (vs the lab)
-- `--static-routing-mode=true` + `--orchestration-cni=flannel` **replace**
-  `--flannel-name=/Common/fl-tunnel`.
+- `--static-routing-mode=true` + `--orchestration-cni=${ORCHESTRATION_CNI}` **replace**
+  `--flannel-name=/Common/fl-tunnel` (CNI value comes from `lab-vars.env`).
 - `--pool-member-type=cluster`, hardened pod spec, credentials-directory secret.
 - `--as3-validation=true` (lab 2.1 used `false`).
 

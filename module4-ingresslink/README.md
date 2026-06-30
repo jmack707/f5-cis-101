@@ -38,7 +38,8 @@ The original lab passed both `--custom-resource-mode=true` and
 `--ingress-link-mode=true`. Current CIS folds IngressLink into CRD mode —
 `--ingress-link-mode` is gone from the config-parameters reference, so only
 `--custom-resource-mode=true` is needed. The networking also uses static routes
-(`--static-routing-mode=true` + `--orchestration-cni=flannel`) like module 2.
+(`--static-routing-mode=true` + `--orchestration-cni=${ORCHESTRATION_CNI}`) like
+module 2 — the CNI value is set in `lab-vars.env` (defaults to `flannel`).
 
 > Source: https://clouddocs.f5.com/training/community/containers/html/class1/module4/module4.html
 > IngressLink: https://clouddocs.f5.com/containers/latest/userguide/ingresslink/
