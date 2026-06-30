@@ -11,6 +11,58 @@ Wires a BIG-IP VS (CIS IngressLink CRD) to the NGINX IC pods with PROXY protocol
 | `04-ingresslink-deployment.yaml` | CIS in CRD mode (static routes) | `kubectl create` |
 | `05-vs-ingresslink.yaml` | IngressLink CR (VIP 10.1.1.4) | `kubectl create` |
 
+## Anatomy — IngressLink = the NGINX-aware way to publish the IC
+Module 3 published the NGINX IC with a hand-written AS3 ConfigMap (lab 3.2). **IngressLink
+replaces that** with a purpose-built CRD: you declare one `IngressLink` object and CIS
+builds the BIG-IP VS, tracks the NGINX pods, and attaches the PROXY-protocol iRule for
+you. Four pieces have to line up:
+
+**1. CRD-mode CIS** (`04-ingresslink-deployment.yaml`) — the enabler:
+
+| Field | Why it matters |
+|-------|----------------|
+| `--custom-resource-mode=true` | **The mode decision.** CIS now watches CRDs (incl. `IngressLink`) instead of Ingress/ConfigMap objects. Modules 1–3 used `false`. (The old `--ingress-link-mode=true` is gone — folded into CRD mode.) |
+| `--pool-member-type=cluster` + `--static-routing-mode=true` | Same cluster-mode data path as module 2 — pool members are NGINX **pod IPs** over CIS-written routes. |
+
+**2. The IngressLink CR** (`05-vs-ingresslink.yaml`) — the declaration CIS acts on:
+
+```yaml
+apiVersion: cis.f5.com/v1
+kind: IngressLink
+metadata:
+  name: vs-ingresslink
+  namespace: nginx-ingress
+spec:
+  virtualServerAddress: "${INGRESSLINK_VIP}"   # the BIG-IP VIP CIS creates (lab uses 10.1.1.4)
+  iRules:
+    - /Common/Proxy_Protocol_iRule             # iRule CIS attaches -> emits PROXY protocol to NGINX
+  selector:
+    matchLabels:
+      app: nginx-ingress                       # which pods become pool members = the NGINX IC pods
+```
+
+| Field | Why it matters |
+|-------|----------------|
+| `virtualServerAddress` | The VIP CIS stands up. CIS creates **two** virtual servers from it — `ingress_link_crd_<vip>_80` and `_443` — so the BIG-IP fronts both HTTP and HTTPS. |
+| `iRules` | CIS attaches this iRule to the VS. It prepends a **PROXY protocol** header so NGINX learns the real client IP across the BIG-IP hop (see piece 4). |
+| `selector.matchLabels` | The pod selector — `app: nginx-ingress` matches the NGINX IC pods from lab 3.1, so the BIG-IP pool tracks them automatically as they scale. |
+
+**3. PROXY protocol on NGINX** (`03-nginx-config.yaml`) — the receiving end:
+`proxy-protocol: "True"` + `real-ip-header: "proxy_protocol"` tell NGINX to *parse* the
+PROXY header the iRule sends and surface the real client IP as `X-Real-IP` to the app.
+
+**4. The iRule** (`01-Proxy_Protocol_iRule.tcl`) — applied to the BIG-IP via iControl REST
+by `deploy.sh` (no TMUI step). This is the *sender* the CR's `iRules` field references.
+
+**Flow:** client → **BIG-IP VS** (from the CR's `virtualServerAddress`) → iRule prepends
+PROXY header → **NGINX IC pod** (selected by `app: nginx-ingress`, parses PROXY → real
+client IP) → **app pod**. One CRD wires all of it; CIS keeps the pool in sync with the
+NGINX pods.
+
+> **vs. module 3:** lab 3.2 also put a BIG-IP VS in front of NGINX, but you wrote the AS3
+> by hand and got no client-IP preservation. IngressLink is the supported, NGINX-aware
+> path — declarative CR, two VS (80/443), and PROXY protocol built in.
+
 ## Deploy
 **Prerequisite:** the NGINX IC from module 3 lab 3.1 must be running.
 

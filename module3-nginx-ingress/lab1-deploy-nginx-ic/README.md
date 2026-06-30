@@ -17,6 +17,29 @@ manifests (Apache-2.0), bundled here so the lab runs without fetching anything.
 | `07-service-nodeport.yaml` | NodePort service (80/443) |
 | `install-nginx-ic.sh` | applies all of the above in order and waits for rollout |
 
+## Anatomy — the second tier, and why it exists
+Modules 1–2 had **one tier**: CIS published apps straight to the BIG-IP. Module 3 adds a
+**second tier** — the NGINX Ingress Controller — *in front of* the apps. From here on the
+roles split:
+
+- **NGINX IC does the L7 work** — host/path routing, TLS termination, rewrites — using
+  standard Kubernetes `Ingress` objects (lab 3.2).
+- **CIS does the L4 work** — it publishes a BIG-IP VS whose pool members are the **NGINX
+  IC pods** (lab 3.2), so the BIG-IP load-balances *into* NGINX, and NGINX routes onward.
+
+This lab just installs that second tier. The pieces that matter:
+
+| Object | Why it matters |
+|--------|----------------|
+| `IngressClass nginx` (`05-ingress-class.yaml`, controller `nginx.org/ingress-controller`) | The **claim ticket.** An app Ingress with `ingressClassName: nginx` (lab 3.2) is handled by *this* controller — and ignored by CIS. This is what keeps the two tiers from fighting over the same Ingress. |
+| the controller Deployment (`06-…deployment.yaml`, image `nginx/nginx-ingress:3.7.2`) | The actual NGINX data plane — the pods that will become CIS pool members in lab 3.2 and the IngressLink target in module 4. |
+| pod labels `app: nginx-ingress` | The handle everything downstream selects on — lab 3.2's CIS service and module 4's IngressLink both match `app: nginx-ingress` to find these pods. |
+| `nginx-config` ConfigMap (`04-…`) | Global NGINX tuning. Inert here; **module 4 patches it** to enable PROXY protocol so the real client IP survives the BIG-IP → NGINX hop. |
+
+**Flow (completed across labs):** client → **BIG-IP VS** (CIS, L4) → **NGINX IC pods**
+(L7 routing on host/path) → **app pods**. This lab stands up the middle box; lab 3.2
+wires the BIG-IP in front of it.
+
 ## Install
 ```bash
 bash deploy.sh     # applies the upstream NGINX IC manifests (via install-nginx-ic.sh), waits for rollout

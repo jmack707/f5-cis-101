@@ -86,7 +86,7 @@ bash verify.sh     # PASS/FAIL checks
 
 ## Verify on BIG-IP
 TMUI ▸ Local Traffic ▸ **AS3** partition (auto-created, named after the tenant):
-a `serviceMain` virtual server on 10.1.1.4:80 and a `web_pool`. Scale the app
+a `hello_world_vs` virtual server on 10.1.1.4:80 and a `web_pool`. Scale the app
 (`kubectl scale --replicas=10 deployment/f5-hello-world-web`) and watch members
 update.
 
