@@ -10,6 +10,23 @@ IPs reached over the static routes from lab 2.1.
 | `02-clusterip-service-hello-world.yaml` | ClusterIP service |
 | `03-ingress-hello-world.yaml` | Ingress (`virtual-server.f5.com` annotations) |
 
+## Anatomy — same Ingress, different pool members
+The Ingress and its `virtual-server.f5.com/*` annotations work **exactly** as in lab 1.2
+(see that README's anatomy table for what each annotation does) — CIS still turns them
+into a BIG-IP VS + pool. The **one difference is in the pool members**, and it comes
+from lab 2.1's CIS mode, not from anything in this manifest:
+
+| | Module 1 (NodePort) | Module 2 (cluster) |
+|---|---|---|
+| Service type | `NodePort` | `ClusterIP` |
+| Pool member address | `<nodeIP>:<nodePort>` | **pod IP** on the overlay |
+| Reachability | BIG-IP → node IP | BIG-IP → pod IP over CIS's **static routes** |
+| Scaling the app | members fixed at node count | members track pods 1:1 |
+
+**Flow:** Ingress annotations → CIS builds the VS at the VIP → pool members = the backend
+Service's **pod endpoints** (not node:nodePort) → BIG-IP reaches them over the routes
+CIS wrote in lab 2.1. Browse the VIP and refresh to watch load balancing across pods.
+
 ## Deploy
 ```bash
 bash deploy.sh     # renders + applies the manifests above, in order, then waits until ready

@@ -12,6 +12,35 @@ and the NGINX IC from lab 3.1.
 | `02-cafe-secret.yaml` | TLS secret `cafe-secret` for `cafe.example.com` (example cert) |
 | `03-cafe-ingress.yaml` | NGINX Ingress routing `/coffee` and `/tea` (TLS) |
 
+## Anatomy — the whole chain, exercised end-to-end
+Lab 4.1 built the plumbing (BIG-IP VS → PROXY iRule → NGINX). This lab drops a **real app
+with TLS and path routing** on top so you can prove every hop works. Nothing here touches
+CIS or IngressLink — it's a standard NGINX workload that rides the IngressLink VIP:
+
+| File | Who reads it | What it does |
+|------|--------------|--------------|
+| `01-cafe.yaml` | (the apps) | Two services behind NGINX: `coffee` (2 replicas) + `tea` (3 replicas), `nginxdemos/nginx-hello` so each response names its serving pod. |
+| `02-cafe-secret.yaml` | **NGINX IC** | TLS secret `cafe-secret` for `cafe.example.com` — NGINX **terminates TLS** (the BIG-IP just passes L4). |
+| `03-cafe-ingress.yaml` (`ingressClassName: nginx`, host `cafe.example.com`, `/coffee` → coffee, `/tea` → tea) | **NGINX IC** | The L7 routing + TLS rule. Claimed by the `nginx` IngressClass — CIS never sees it; it only knows about the NGINX pods via the IngressLink CR. |
+
+**Flow (the full module-4 chain):**
+```
+client ──TLS──▶ BIG-IP VS (IngressLink, :443)
+        │        └─ PROXY iRule prepends real client IP
+        ▼
+     NGINX IC pod  ── terminates TLS, parses PROXY header
+        │            ── matches host cafe.example.com + path /coffee|/tea
+        ▼
+   coffee / tea pod  ── sees real client IP as X-Real-IP
+```
+
+**What each test assertion proves:**
+- **Server name = a coffee/tea pod** → NGINX path routing + the BIG-IP pool (IngressLink
+  selecting the NGINX pods) both work.
+- **X-Real-IP / X-Forwarded-For = your client IP** → PROXY protocol carried the real
+  source IP the whole way (BIG-IP iRule → NGINX → pod). Without lab 4.1's iRule +
+  `nginx-config` patch, this would show the BIG-IP's IP instead.
+
 ## Deploy
 ```bash
 bash deploy.sh     # renders + applies the cafe manifests, waits for the coffee/tea pods

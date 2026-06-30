@@ -10,6 +10,27 @@ is the partition; CIS programs the pod routes itself once running.
 | `02-setup.sh` | ServiceAccount, ClusterRoleBinding, BIG-IP secret (skip if done in module 1) |
 | `03-cluster-deployment.yaml` | CIS controller, cluster mode + static routes |
 
+## Anatomy — what makes this "cluster mode," and why
+Same CIS controller as module 1, but three args change *where the pool members live*
+and *how the BIG-IP reaches them*. Everything else (RBAC, credentials-directory,
+`--bigip-partition`, `--custom-resource-mode=false`) is identical to lab 1.1.
+
+| Field | Why it matters |
+|-------|----------------|
+| `--pool-member-type=cluster` | **The mode decision.** Pool members become **pod IPs** on the cluster overlay network — not `<nodeIP>:<nodePort>`. Scaling the app changes the member list directly (module 1's NodePort members stayed fixed at the node count). |
+| `--static-routing-mode=true` | CIS **writes routes onto the BIG-IP** (named `k8s-<node>-<nodeip>`) so it can reach pod CIDRs. This replaces the old flannel VXLAN tunnel — no `--flannel-name`, no BIG-IP flannel node, no overlay encapsulation. |
+| `--orchestration-cni=flannel` | Tells CIS which CNI the cluster runs so it reads pod CIDR / node IP from the right node fields (`node.Spec.PodCIDR`, `node.Status.Addresses`) when building those routes. |
+| `--bigip-partition` / `--custom-resource-mode=false` / credentials-directory | Unchanged from lab 1.1 — same control channel, same partition ownership, same Ingress + ConfigMap processing. |
+
+**Flow:** CIS starts → reads each node's pod CIDR + node IP → writes a static route per
+node onto the BIG-IP → publishes VS/pools whose members are **pod IPs** reachable over
+those routes. Confirm the routes with `tmsh list net route | grep k8s-`.
+
+> **NodePort vs cluster:** NodePort (module 1) hides pods behind `node:nodePort` and
+> needs no pod-network routing; cluster mode sends BIG-IP traffic **straight to the pod
+> IP**, so members track pods 1:1 — but the BIG-IP must have a route to the pod network,
+> which is exactly what `--static-routing-mode` provides.
+
 ## Deploy
 ```bash
 bash deploy.sh     # BIG-IP prep + prereqs + CIS controller (removes any other module's CIS first)

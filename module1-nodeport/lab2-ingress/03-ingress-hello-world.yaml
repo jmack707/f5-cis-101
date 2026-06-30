@@ -13,15 +13,16 @@ metadata:
   name: f5-hello-world-web
   namespace: default
   annotations:
-    virtual-server.f5.com/partition: "${BIGIP_PARTITION}"
+    # Each virtual-server.f5.com/* annotation maps to a BIG-IP setting (see the README "Anatomy").
+    virtual-server.f5.com/partition: "${BIGIP_PARTITION}"   # which BIG-IP partition to build the VS in
     # VIP on the BIG-IP external VLAN. Lab YAML uses 10.1.10.101; the lab
     # narrative/screenshots reference 10.1.1.4 - set this to a free VIP that
     # matches your UDF topology.
-    virtual-server.f5.com/ip: "${NODEPORT_VIP}"
-    virtual-server.f5.com/http-port: "80"
-    virtual-server.f5.com/ssl-redirect: "false"
-    virtual-server.f5.com/balance: "round-robin"
-    virtual-server.f5.com/health: |
+    virtual-server.f5.com/ip: "${NODEPORT_VIP}"             # the VIP the virtual server listens on
+    virtual-server.f5.com/http-port: "80"                  # VS listener port
+    virtual-server.f5.com/ssl-redirect: "false"            # no HTTP->HTTPS redirect
+    virtual-server.f5.com/balance: "round-robin"           # BIG-IP pool load-balancing method
+    virtual-server.f5.com/health: |                        # BIG-IP health monitor attached to the pool
       [
         {
           "path":     "f5.hello.world/",
@@ -38,6 +39,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: f5-hello-world-web
+                name: f5-hello-world-web   # CIS reads THIS Service's endpoints -> BIG-IP pool members
                 port:
-                  number: 80
+                  number: 80               # the Service port (not the pod port; CIS maps it to the nodePort)

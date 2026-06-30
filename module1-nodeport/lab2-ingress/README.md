@@ -11,6 +11,29 @@ you can watch load balancing) to BIG-IP using a Kubernetes **Ingress** with
 | `02-nodeport-service-hello-world.yaml` | NodePort service |
 | `03-ingress-hello-world.yaml` | Ingress (legacy `virtual-server.f5.com` annotations) |
 
+## Anatomy — how an Ingress becomes a BIG-IP virtual server
+CIS watches Ingress objects and turns the `virtual-server.f5.com/*` annotations into
+a BIG-IP virtual server + pool. **The annotations *are* the BIG-IP config:**
+
+| Annotation / field | What CIS does with it |
+|--------------------|-----------------------|
+| `virtual-server.f5.com/ip` | The **VIP** — the address CIS creates the BIG-IP virtual server on. The single most important value. |
+| `virtual-server.f5.com/partition` | Which BIG-IP partition to build it in (matches `--bigip-partition`). |
+| `virtual-server.f5.com/http-port: "80"` | The **listener port** of the virtual server. |
+| `virtual-server.f5.com/balance: round-robin` | The BIG-IP load-balancing method for the pool. |
+| `virtual-server.f5.com/health` | The BIG-IP **health monitor** CIS attaches to the pool (send / interval / timeout) — what marks members up or down. |
+| `spec.rules…backend.service.name` | The **Service whose endpoints become the pool members.** This is the link from the Ingress to your app. |
+| `…service.port.number: 80` | The Service `port` (80) to target — *not* the pod port. In NodePort mode CIS resolves it to each node's `nodePort`. |
+
+**Flow:** Ingress annotations → CIS builds the VS at the VIP → pool members =
+the backend Service's `node:nodePort` → BIG-IP health-monitors them. Browse the VIP
+and refresh — the `nginxdemos/nginx-hello` page shows a different pod name as the
+BIG-IP rotates across backends.
+
+> **IngressClass:** with CIS's default `manage-ingress-class-only`, it processes this
+> Ingress even with no class set. To be explicit, create an `f5` IngressClass and add
+> `ingressClassName: f5` under `spec`.
+
 ## Deploy
 ```bash
 bash deploy.sh     # renders + applies the manifests above, in order, then waits until ready
