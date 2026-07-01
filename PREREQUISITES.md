@@ -36,8 +36,10 @@ first; it checks everything below and tells you exactly what's missing.
   CIS writes pod-CIDR-via-nodeIP routes, so no tunnel, but plain routing must exist.
 - Nodes must have `spec.podCIDR` set (`kube-controller-manager
   --allocate-node-cidrs=true`). Preflight WARNs if any node lacks it.
-- Different CNI? Set `--orchestration-cni` accordingly (`cilium-k8s` for your
-  `cni-net-lab`); Calico also needs `blockaffinities` read on the CIS service account.
+- Different CNI? Set `ORCHESTRATION_CNI` in `lab-vars.env` (defaults to `flannel`;
+  use `cilium-k8s` for your `cni-net-lab`, or `calico-k8s` / `antrea`) — it renders
+  into the controller manifest, no YAML edits. Calico also needs `blockaffinities`
+  read on the CIS service account.
 
 ### Module 4 — IngressLink
 - **Requires NGINX Plus IC.** The OSS controller installed in Module 3 (lab 3.1)

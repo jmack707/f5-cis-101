@@ -191,9 +191,11 @@ These apply across the set; per-lab READMEs note which touch each lab.
 - **Credentials** — switched from env-var injection to `--credentials-directory`
   with a volume-mounted secret (`f5-bigip-ctlr-login`, now including `url`).
 - **Module 2 networking** — **flannel VXLAN replaced with static routing mode**
-  (`--static-routing-mode=true` + `--orchestration-cni=flannel`). No VXLAN
-  tunnel/self-IP and no BIG-IP flannel node; CIS writes `k8s-<node>-<nodeip>`
-  routes onto BIG-IP. Requires BIG-IP L3 reachability to node IPs (CIS 2.13.0+).
+  (`--static-routing-mode=true` + `--orchestration-cni=${ORCHESTRATION_CNI}`). No
+  VXLAN tunnel/self-IP and no BIG-IP flannel node; CIS writes `k8s-<node>-<nodeip>`
+  routes onto BIG-IP. Requires BIG-IP L3 reachability to node IPs (CIS 2.13.0+). The
+  CNI is set in `lab-vars.env` (`ORCHESTRATION_CNI`, defaults to `flannel`) so the
+  cluster-mode labs run on calico/cilium/antrea without editing any manifest.
 - **Module 3** — deprecated `kubernetes.io/ingress.class: "nginx"` annotation
   replaced with `spec.ingressClassName: nginx`; AS3 `schemaVersion` raised from
   3.10.0 (below the 3.18+ floor) to 3.50.0.

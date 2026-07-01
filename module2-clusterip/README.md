@@ -41,9 +41,12 @@ cd lab3-configmap-as3  && bash deploy.sh && bash verify.sh && bash cleanup.sh &&
 > continuing to **module 3** — it reuses this controller.
 
 ## CNI note
-`--orchestration-cni=flannel` matches the lab cluster's CNI. For other CNIs swap
-the value (`cilium-k8s`, `ovn-k8s`, `antrea`, `calico-k8s`). Calico additionally
-needs `blockaffinities` read permission on the CIS service account.
+The CNI is set **once** in `lab-vars.env` via `ORCHESTRATION_CNI` (defaults to
+`flannel`, the UDF lab cluster's CNI) and rendered into the controller manifest —
+no need to edit YAML. For other CNIs set it to `cilium-k8s`, `ovn-k8s`, `antrea`,
+or `calico-k8s`. Calico additionally needs `blockaffinities` read permission on the
+CIS service account. (OVN-Kubernetes uses a different routing model than the static
+routes these labs program.)
 
 > Source: https://clouddocs.f5.com/training/community/containers/html/class1/module2/module2.html
 > Static routes: https://clouddocs.f5.com/containers/latest/userguide/static-route-support.html
@@ -51,8 +54,8 @@ needs `blockaffinities` read permission on the CIS service account.
 ## Common errors
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `verify.sh`: "no k8s-* static routes" | static routing not programmed | confirm `--static-routing-mode=true` + `--orchestration-cni=flannel`; check `kubectl describe node` has `PodCIDR` |
+| `verify.sh`: "no k8s-* static routes" | static routing not programmed | confirm `--static-routing-mode=true` + `ORCHESTRATION_CNI` matches your CNI; check `kubectl describe node` has `PodCIDR` |
 | Routes exist but data-path FAIL | BIG-IP can't reach node IPs at L3 | BIG-IP needs a self-IP on the node network; verify with `ping`/`tmsh show net route` |
 | Pool members are NodePorts, not pod IPs | controller still in NodePort mode | ensure `--pool-member-type=cluster` and that module 1's CIS was deleted |
 | Empty `node.Spec.PodCIDR` | cluster doesn't allocate CIDRs | `kube-controller-manager --allocate-node-cidrs=true` |
-| Calico instead of flannel | wrong CNI value / missing RBAC | set `--orchestration-cni=calico-k8s`; grant the SA read on `blockaffinities` |
+| Calico instead of flannel | wrong CNI value / missing RBAC | set `ORCHESTRATION_CNI=calico-k8s` in `lab-vars.env`; grant the SA read on `blockaffinities` |
