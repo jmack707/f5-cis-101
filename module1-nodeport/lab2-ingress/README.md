@@ -7,9 +7,10 @@ you can watch load balancing) to BIG-IP using a Kubernetes **Ingress** with
 ## Files (apply in order)
 | File | Purpose |
 |------|---------|
+| `00-ingressclass-f5.yaml` | `f5` IngressClass (controller `f5.com/cntr-ingress-svcs`) — CIS's claim ticket |
 | `01-deployment-hello-world.yaml` | the app (2 replicas) |
 | `02-nodeport-service-hello-world.yaml` | NodePort service |
-| `03-ingress-hello-world.yaml` | Ingress (legacy `virtual-server.f5.com` annotations) |
+| `03-ingress-hello-world.yaml` | Ingress (legacy `virtual-server.f5.com` annotations, `ingressClassName: f5`) |
 
 ## Anatomy — how an Ingress becomes a BIG-IP virtual server
 CIS watches Ingress objects and turns the `virtual-server.f5.com/*` annotations into
@@ -30,9 +31,14 @@ the backend Service's `node:nodePort` → BIG-IP health-monitors them. Browse th
 and refresh — the `nginxdemos/nginx-hello` page shows a different pod name as the
 BIG-IP rotates across backends.
 
-> **IngressClass:** with CIS's default `manage-ingress-class-only`, it processes this
-> Ingress even with no class set. To be explicit, create an `f5` IngressClass and add
-> `ingressClassName: f5` under `spec`.
+> **IngressClass (required):** CIS 2.x only builds a virtual server for an Ingress that
+> references the `f5` IngressClass. `00-ingressclass-f5.yaml` creates that cluster-scoped
+> resource and `03-ingress-hello-world.yaml` sets `spec.ingressClassName: f5`. Without it
+> CIS logs `[CORE] Ingress class resource not found` on every reconcile and programs
+> nothing on the BIG-IP (no VS, no pools) — even though the Ingress and endpoints exist.
+> The `f5` IngressClass is cluster-scoped and shared, so it is safe to leave in place
+> across modules; it is deliberately **not** the cluster default, so Module 3's `nginx`
+> IngressClass keeps its own Ingresses.
 
 ## Deploy
 ```bash
