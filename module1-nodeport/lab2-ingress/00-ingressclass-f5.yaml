@@ -1,0 +1,20 @@
+# f5 IngressClass — REQUIRED for CIS 2.x to process Ingress resources.
+# No template variables here; the values below are fixed CIS constants.
+#
+# Without this cluster-scoped resource, CIS 2.20 logs
+#   [ERROR] [CORE] Ingress class resource not found.
+# on every reconcile and programs NOTHING on the BIG-IP (no VS, no pools),
+# even though the Ingress and endpoints exist. Creating it makes CIS claim
+# and process any Ingress whose spec.ingressClassName is "f5".
+#
+# Not templated (fixed CIS constants, not topology):
+#   name "f5"                    -> matches CIS's default --ingress-class
+#   controller f5.com/cntr-ingress-svcs -> CIS's built-in Ingress controller name
+# Intentionally NOT annotated as the cluster default (is-default-class) so it
+# never steals Ingresses meant for the nginx IngressClass in Module 3.
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: f5
+spec:
+  controller: f5.com/cntr-ingress-svcs

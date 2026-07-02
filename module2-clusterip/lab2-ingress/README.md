@@ -6,9 +6,15 @@ IPs reached over the static routes from lab 2.1.
 ## Files (apply in order)
 | File | Purpose |
 |------|---------|
+| `00-ingressclass-f5.yaml` | `f5` IngressClass (controller `f5.com/cntr-ingress-svcs`) — CIS's claim ticket |
 | `01-deployment-hello-world.yaml` | the app |
 | `02-clusterip-service-hello-world.yaml` | ClusterIP service |
-| `03-ingress-hello-world.yaml` | Ingress (`virtual-server.f5.com` annotations) |
+| `03-ingress-hello-world.yaml` | Ingress (`virtual-server.f5.com` annotations, `ingressClassName: f5`) |
+
+> **IngressClass (required):** like lab 1.2, CIS 2.x only builds a virtual server for an
+> Ingress bound to the `f5` IngressClass. `00-ingressclass-f5.yaml` creates it and the
+> Ingress sets `spec.ingressClassName: f5`. Without it CIS logs
+> `[CORE] Ingress class resource not found` and programs nothing on the BIG-IP.
 
 ## Anatomy — same Ingress, different pool members
 The Ingress and its `virtual-server.f5.com/*` annotations work **exactly** as in lab 1.2

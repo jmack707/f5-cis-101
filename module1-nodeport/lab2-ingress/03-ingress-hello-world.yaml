@@ -3,10 +3,9 @@
 # virtual-server.f5.com/* annotations are still supported on current CIS.
 # apiVersion networking.k8s.io/v1 is current.
 #
-# Note: an f5 IngressClass is optional here. With manage-ingress-class-only=true
-# (default) CIS still processes an Ingress that has no ingress.class annotation.
-# To make it explicit, create an IngressClass named "f5" (controller:
-# f5.com/cntr-ingress-svcs) and add `ingressClassName: f5` under spec.
+# IngressClass is REQUIRED: CIS 2.x processes only Ingresses that reference the
+# "f5" IngressClass via spec.ingressClassName (created in 00-ingressclass-f5.yaml).
+# Without it CIS logs "[CORE] Ingress class resource not found" and builds no VS.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -32,6 +31,7 @@ metadata:
         }
       ]
 spec:
+  ingressClassName: f5          # claim ticket — CIS only builds a VS for the "f5" IngressClass
   rules:
     - http:
         paths:

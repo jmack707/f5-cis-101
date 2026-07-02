@@ -1,6 +1,10 @@
 # Lab 2.2 - Ingress path (ClusterIP). Kept as legacy Ingress, no CRD conversion.
 # TEMPLATED — render via ../../lab.sh apply <dir> (or: set -a; source lab-vars.env; set +a; envsubst < FILE | kubectl apply -f -)
 # VIP 10.1.10.101 matches the BIG-IP VXLAN tunnel local-address used in 2.1.
+#
+# IngressClass is REQUIRED: CIS 2.x processes only Ingresses that reference the
+# "f5" IngressClass via spec.ingressClassName (created in 00-ingressclass-f5.yaml).
+# Without it CIS logs "[CORE] Ingress class resource not found" and builds no VS.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -22,6 +26,7 @@ metadata:
         }
       ]
 spec:
+  ingressClassName: f5          # claim ticket — CIS only builds a VS for the "f5" IngressClass
   rules:
     - http:
         paths:
